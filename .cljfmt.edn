@@ -1,0 +1,4 @@
+{:indents {async-do [[:block 0]]
+           async-go [[:block 0]]
+           async-let [[:block 1]]
+           async-then [[:block 0]]}}

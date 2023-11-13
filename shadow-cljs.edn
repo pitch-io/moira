@@ -1,0 +1,10 @@
+{:deps {:aliases [:dev]}
+ :dev-http {8031 "target/browser-test"}
+ :builds {:browser-test
+          {:target :browser-test
+           :test-dir "target/browser-test"}
+
+          :test
+          {:target :karma
+           :output-to "target/test/all.js"}}
+ :cache-blockers #{moira.event-test}}

@@ -1,0 +1,29 @@
+name: run-tests
+on: push
+jobs:
+  run-tests-with-karma:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: DeLaGuardo/setup-clojure@12.1
+        with:
+          cli: 1.10.1.693
+          bb: 1.3.186
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+            ~/.deps.clj
+          key: cljdeps-${{ hashFiles('deps.edn', 'bb.edn') }}
+          restore-keys: cljdeps-
+      - run: bb run test:once

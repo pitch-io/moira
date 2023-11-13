@@ -1,0 +1,10 @@
+/node_modules
+/target
+/.shadow-cljs
+/.nrepl-port
+/.yarn.lock
+/*.iml
+/.idea
+/.calva
+/.lsp
+tmp/

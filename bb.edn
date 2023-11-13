@@ -1,0 +1,23 @@
+{:tasks {:requires ([babashka.fs :as fs]
+                    [babashka.wait :as wait])
+         clean {:doc "Purge compilation artifacts."
+                :task (fs/delete-tree "target")}
+         clobber {:doc "Reset project to pristine state."
+                  :depends [clean]
+                  :task (fs/delete-tree "node_modules")}
+         init {:doc "Install npm dependencies."
+               :task (shell "npm install")}
+         test:browser {:doc "Serve browser test runner and auto-compile on changes."
+                       :task (shell "npx shadow-cljs watch browser-test")}
+         -test:run {:task (do
+                            (fs/delete-if-exists "target/test/all.js")
+                            (wait/wait-for-path "target/test/all.js")
+                            (shell "npx karma start"))}
+         -test:compile {:task (shell "npx shadow-cljs watch test")}
+         -test:watch {:depends [-test:run -test:compile]}
+         test:watch {:doc "Auto-compile and run headless tests on changes."
+                     :task (run '-test:watch {:parallel true})}
+         test:once {:doc "Compile and run unit tests."
+                    :task (do
+                            (shell "npx shadow-cljs compile test")
+                            (shell "npx karma start --single-run"))}}}

@@ -1,0 +1,8 @@
+{:paths ["src"]
+
+ :deps {funcool/promesa {:mvn/version "9.2.542"}}
+
+ :aliases {:dev
+           {:extra-deps {binaryage/devtools {:mvn/version "1.0.7"}
+                         thheller/shadow-cljs {:mvn/version "2.26.0"}}
+            :extra-paths ["test"]}}}
