@@ -52,7 +52,7 @@ Add Moira to your project dependencies:
 
 ```cljs
 {:deps
- {io.github.pitch-io/moira {:git/tag "<version>" :git/sha "<short-sha>"}}}
+ {io.github.pitch-io/moira {:git/tag "v0.8.0-alpha" :git/sha "44580e2"}}}
 ```
 
 Configure and start a `system` for bootstrapping your application:
