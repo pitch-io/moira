@@ -1,4 +1,4 @@
-<img alt="Moira" src="logo.svg" width="240" height="200" />
+<img alt="Moira" src="logo.svg" width="160" height="160" />
 
 # Moira
 
@@ -12,14 +12,11 @@ Modular frontend applications in [ClojureScript][cljs].
 
 ## What is Moira?
 
-When frontend applications grow beyond a certain size and complexity, or when
-individual teams want to work on different features simultaneously without
-getting into each other's way, we need to structure and organize our code such
-that it allows for independent development, maintenance, and deployment of
-distinct units. Moira is a library for doing just that based on three core
-design principles.
-
-Moira helps you to build applications that are ...
+As frontend applications become larger and more complex, or when multiple teams
+need to work on different features simultaneously, it becomes necessary to
+structure and organize the code in a way that allows for independent
+development, maintenance, and deployment of distinct units. Moira is a library
+designed to accomplish just that based on three core principles.
 
 * **Modular**: Manage complexity and limit cognitive load by separating
   concerns into encapsulated units with well-defined boundaries and explicit
@@ -32,19 +29,19 @@ Moira helps you to build applications that are ...
 ### What Moira is *not*
 
 Unlike [Reagent][reagent] or [UIx][uix], Moira is not yet another ClojureScript
-[React][react] wrapper. It is not hooking into the render cycle directly and
-has zero opinion on what library to use for building and instrumenting actual
-UI components.
+React [React][react] wrapper. It does not directly interact with the render
+cycle, and there is no preference on which UI library to use for component
+building and instrumentation.
 
-Moira does also not aim to be a complete framework for building web-based
+Moira is not intended to be a complete framework for building web-based
 applications like [re-frame][re-frame] or [Fulcro][fulcro]. Moira's event
-system and application state complement and do not replace UI events and UI
-state management.
+system and application state complement UI events and UI state management,
+rather than replacing them.
 
-That being said, the "all state in one place" philosophy of re-frame's [global
-application state][app-db] does not really play well with Moira's main
-objective of creating self-sufficient components that encapsulate and manage
-respective application state independently.
+That being said, the all-state-in-one-place philosophy of re-frame's [global
+application state][app-db] does not play well with Moira's main objective of
+creating self-sufficient components for managing encapsulated module state
+independently.
 
 ## Usage
 
@@ -99,7 +96,7 @@ To set up the project (e.g., install [npm][npmjs] dependencies), execute the
 bb init
 ```
 
-Starting an envirinment for interactive development, you can serve an
+Starting an environment for interactive development, you can serve an
 in-browser test runner at `http://localhost:8031` and have everything
 recompiled automatically on any change with:
 
@@ -114,7 +111,7 @@ by:
 cat .shadow-cljs/nrepl.port
 ```
 
-Learn about all availbale tasks with:
+Learn about all available tasks with:
 
 ```bash
 bb tasks
@@ -122,7 +119,7 @@ bb tasks
 
 ### Testing
 
-For a single execution of the test suite in headless mode invoke:
+For a single execution of the test suite in headless mode, invoke:
 
 ```bash
 bb test:once
