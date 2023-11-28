@@ -1,6 +1,13 @@
 (ns moira.application
-  "Configure module dependencies, manage module lifecycles, and set up
-  the unified application log for inter-module communication."
+  "Instrument modules and their dependencies by wrapping `system-map` with an
+  instance of `Application`. When system lifecycle events such as `start!`,
+  `stop!`, `pause!`, or `resume!` are triggered, the corresponding state
+  `transition` executes on each module and its dependencies in order.
+
+  All modules can leverage the unified log for inter-module communication via
+  Application Events. The `:app-log` module is automatically injected into the
+  system, with all other modules implicitly depending on it for access to the
+  Application Log API."
 
   (:require [clojure.spec.alpha :as s]
             [moira.module :as module]
@@ -9,36 +16,74 @@
 
 (defprotocol Thenable
   (then [this f]
-    "Return promise resolving to application state after current chain of
-    commands has finished."))
+    "`f` is called asynchronously with a settled `system-map` after all
+    scheduled transitions finish.
+
+    Returns a `Promise` that resolves to the updated `system-map`."))
 
 (defprotocol Chainable
   (then! [this f]
-    "Schedule state update `f` for after the current chain of commands has
-    finished.
+    "Enqueue function 'f' to update 'this' after all currently scheduled
+    transitions finish.
 
-    Updates internal state from return value. Return value can be a promise
-    resolving to the new state."))
+    Replaces internal application state with the return value (or resolved
+    value if a `Promise`) of applying `f` on the settled `system-map`.
+
+    Returns a `Promise` that resolves to the updated `system-map`."))
 
 (defprotocol Transitionable
+  "Manage the lifecycle of an `Application` through chained updates. The
+  `transition` is guaranteed to be applied on module dependencies first for
+  `up!` and last for `down!`."
   (up! [this txs ks]
-    "Elevate modules `ks` and their dependencies by applying interceptors
-    `txs`.")
+    "Update `this` by elevating modules defined for `ks` and all their
+    dependencies in order.
+
+    The interceptor chain `txs` is applied in context of each module
+    respectively. When a circular dependency is detected, no updates are
+    applied, and an error is thrown.
+
+    Returns a `Promise` that resolves to the updated `system-map`.")
   (down! [this txs ks]
-    "Tear down modules `ks` and their dependencies in reversed order by
-    applying interceptors `txs`.")
+    "Update `this` by tearing down modules defined for `ks` and all their
+    dependencies in reverse order.
+
+    The interceptor chain `txs` is applied in context of each module
+    respectively. When a circular dependency is detected, no updates are
+    applied, and an error is thrown.
+
+    Returns a `Promise` that resolves to the updated `system-map`.")
   (tx! [this txs ks]
-    "Apply interceptors `txs` to modules `ks`."))
+    "Update `this` by updating modules defined for `ks` without handling
+    dependencies.
+
+    The interceptor chain `txs` is applied in context of each module
+    respectively. When a circular dependency is detected, no updates are
+    applied, and an error is thrown.
+
+    Returns a `Promise` that resolves to the updated `system-map`."))
 
 (defprotocol Extendable
+  "Enhance the functionality of `Application` by adding new modules or
+  modifying existing ones."
   (extend! [this modules]
-    "Extend `system-map` to include modules defined in `modules`.
+    "Extend `this` to include `modules` defined as a map of module keys to
+    (potentially partial) module definitions. New values will be added, but
+    existing values are not changed.
 
-    New properties are added and existing properties are not changed.")
+    The update will be applied once all currently ongoing transitions have
+    finished.
+
+    Returns a `Promise` that resolves to the updated `system-map`.")
   (override! [this modules]
-    "Override `system-map` to update modules defined in `modules`.
+    "Update `this` to include `modules` defined as a map of module keys to
+    (potentially partial) module definitions. New values will be added, and
+    existing values will be overridden.
 
-    New properties are added and existing properties are changed."))
+    The update will be applied once all currently ongoing transitions have
+    finished. New values will be added, and existing values will be overridden.
+
+    Returns a `Promise` that resolves to the updated `system-map`."))
 
 (def ^:dynamic *timeout* 500)
 (def ^:dynamic *warnings?* false)
