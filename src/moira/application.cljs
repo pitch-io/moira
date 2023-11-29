@@ -1,15 +1,29 @@
 (ns moira.application
   "Instrument modules and their dependencies by wrapping `system-map` with an
-  instance of `Application`.
+  instance of [[Application]].
 
-  When system lifecycle events such as `start!`, `stop!`, `pause!`, or
-  `resume!` are triggered, the corresponding state `transition` executes on
-  each module and its dependencies in order.
+  When system lifecycle events such as [[start!]], [[stop!]], [[pause!]], or
+  [[resume!]] are triggered, the corresponding state
+  [[moira.transition|transition]] executes on each module and its dependencies
+  in order.
+
+      (def system {:module-a {:start #'module-a/start}
+                   :module-b {:deps #{:module-a}
+                              :start #'module-b/start}})
+
+      (defonce app (application/create system))
+
+      (defn ^:export init []
+        (application/start! app))
 
   All modules can leverage the unified log for inter-module communication via
   Application Events. The `:app-log` module is automatically injected into the
   system, with all other modules implicitly depending on it for access to the
-  Application Log API."
+  Application Log API.
+
+      (defn start [_ {{:keys [on]} :app-log}]
+        (on ::module-b/something-happened #(pr \"Something happened: \" %)))
+  "
 
   (:require [clojure.spec.alpha :as s]
             [moira.module :as module]
@@ -34,40 +48,47 @@
     Returns a `Promise` that resolves to the updated `system-map`."))
 
 (defprotocol Transitionable
-  "Manage the lifecycle of an `Application` through chained updates. The
-  `transition` is guaranteed to be applied on module dependencies first for
-  `up!` and last for `down!`."
+  "Manage the lifecycle of an [[Application]] through chained updates. The
+  [[moira.transition]] is guaranteed to be applied on module dependencies first
+  for [[up!]] and last for [[down!]]."
+
   (up! [this txs ks]
     "Update `this` by elevating modules defined for `ks` and all their
     dependencies in order.
 
     The interceptor chain `txs` is applied in context of each module
     respectively. When a circular dependency is detected, no updates are
-    applied, and an error is thrown. See [[moira.transition/up]] for details.
+    applied, and an error is thrown. Used internally by [[start!]] and
+    [[resume!]]. See [[moira.transition/up|transition/up]] for more details.
 
     Returns a `Promise` that resolves to the updated `system-map`.")
+
   (down! [this txs ks]
     "Update `this` by tearing down modules defined for `ks` and all their
     dependencies in reverse order.
 
     The interceptor chain `txs` is applied in context of each module
     respectively. When a circular dependency is detected, no updates are
-    applied, and an error is thrown. See [[moira.transition/down]] for details.
+    applied, and an error is thrown. Used internally by [[stop!]] and
+    [[pause!]]. See [[moira.transition/down|transition/down]] for more details.
 
     Returns a `Promise` that resolves to the updated `system-map`.")
+
   (tx! [this txs ks]
     "Update `this` by updating modules defined for `ks` without handling
     dependencies.
 
     The interceptor chain `txs` is applied in context of each module
     respectively. When a circular dependency is detected, no updates are
-    applied, and an error is thrown. See [[moira.transition/tx]] for details.
+    applied, and an error is thrown. See [[moira.transition/tx|transition/tx]]
+    for details.
 
     Returns a `Promise` that resolves to the updated `system-map`."))
 
 (defprotocol Extendable
-  "Enhance the functionality of `Application` by adding new modules or
+  "Enhance the functionality of [[Application]] by adding new modules or
   modifying existing ones."
+
   (extend! [this modules]
     "Extend `this` to include `modules` defined as a map of module keys to
     (potentially partial) module definitions. New values will be added, but
@@ -77,6 +98,7 @@
     finished.
 
     Returns a `Promise` that resolves to the updated `system-map`.")
+
   (override! [this modules]
     "Update `this` to include `modules` defined as a map of module keys to
     (potentially partial) module definitions. New values will be added, and
@@ -87,8 +109,33 @@
 
     Returns a `Promise` that resolves to the updated `system-map`."))
 
-(def ^:dynamic *timeout* 500)
-(def ^:dynamic *warnings?* false)
+(def ^:dynamic *timeout*
+  "Maximum duration in milliseconds for a [[moira.transition|transition]] to
+  complete.
+
+  Lifecycle events should settle swiftly to minimize the period during which
+  the system is in a transitional state. If the update is not fulfilled or
+  rejected within `*timeout*` milliseconds, it is dismissed with a
+  `TimeoutException`. Additionally, this prevents the [[Application]] from
+  getting stuck due to a `Promise` deadlock.
+
+  Lowering this value and enabling warnings during development is recommended
+  to identify problems early. See [[*warnings*]] for an example."
+
+  500)
+
+(def ^:dynamic *warnings?*
+  "Enable warnings in the browser console.
+
+  Warnings are turned off by default, and it is recommended to set the value to
+  `true` during development.
+
+      (when ^boolean js/goog.DEBUG ; development only
+        (set! application/*warnings?* true)
+        (set! application/*timeout* 100))
+  "
+
+  false)
 
 (deftype Application [!state !tail]
   IDeref
