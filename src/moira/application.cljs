@@ -22,7 +22,7 @@
   Application Log API.
 
       (defn start [_ {{:keys [on]} :app-log}]
-        (on ::module-b/something-happened #(pr \"Something happened: \" %)))
+        (on :something-happened #(pr \"Something happened:\" %)))
   "
 
   (:require [clojure.spec.alpha :as s]
