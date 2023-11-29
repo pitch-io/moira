@@ -1,8 +1,10 @@
 (ns moira.application
   "Instrument modules and their dependencies by wrapping `system-map` with an
-  instance of `Application`. When system lifecycle events such as `start!`,
-  `stop!`, `pause!`, or `resume!` are triggered, the corresponding state
-  `transition` executes on each module and its dependencies in order.
+  instance of `Application`.
+
+  When system lifecycle events such as `start!`, `stop!`, `pause!`, or
+  `resume!` are triggered, the corresponding state `transition` executes on
+  each module and its dependencies in order.
 
   All modules can leverage the unified log for inter-module communication via
   Application Events. The `:app-log` module is automatically injected into the
@@ -23,7 +25,7 @@
 
 (defprotocol Chainable
   (then! [this f]
-    "Enqueue function 'f' to update 'this' after all currently scheduled
+    "Enqueue function `f` to update `this` after all currently scheduled
     transitions finish.
 
     Replaces internal application state with the return value (or resolved
@@ -41,7 +43,7 @@
 
     The interceptor chain `txs` is applied in context of each module
     respectively. When a circular dependency is detected, no updates are
-    applied, and an error is thrown.
+    applied, and an error is thrown. See [[moira.transition/up]] for details.
 
     Returns a `Promise` that resolves to the updated `system-map`.")
   (down! [this txs ks]
@@ -50,7 +52,7 @@
 
     The interceptor chain `txs` is applied in context of each module
     respectively. When a circular dependency is detected, no updates are
-    applied, and an error is thrown.
+    applied, and an error is thrown. See [[moira.transition/down]] for details.
 
     Returns a `Promise` that resolves to the updated `system-map`.")
   (tx! [this txs ks]
@@ -59,7 +61,7 @@
 
     The interceptor chain `txs` is applied in context of each module
     respectively. When a circular dependency is detected, no updates are
-    applied, and an error is thrown.
+    applied, and an error is thrown. See [[moira.transition/tx]] for details.
 
     Returns a `Promise` that resolves to the updated `system-map`."))
 
