@@ -21,9 +21,9 @@
                     :task (do
                             (shell "npx shadow-cljs compile test")
                             (shell "npx karma start --single-run"))}
-         doc:generate {:doc "Update documenation."
-                       :task (clojure "-X:dev:doc")}
          release:publish {:doc "Publish latest tagged release to Clojars."
                           :task (apply clojure "-M:release" *command-line-args*)}
          release:version {:doc "Get current release version from tags."
-                          :task (clojure "-M:release version")}}}
+                          :task (clojure "-M:release version")}
+         doc:api {:doc "Generate API documenation."
+                  :task (clojure "-X:dev:doc")}}}

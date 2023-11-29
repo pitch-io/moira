@@ -16,4 +16,4 @@
             :exec-fn codox.main/generate-docs
             :exec-args {:language :clojurescript
                         :html {:namespace-list :flat}
-                        :output-path "doc"}}}}
+                        :output-path "target/doc/api"}}}}
