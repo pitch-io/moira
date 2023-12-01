@@ -31,6 +31,8 @@
             [promesa.core :as p]))
 
 (defprotocol Thenable
+  "Access the settled state of an [[Application]] instance."
+
   (then [this f]
     "`f` is called asynchronously with a settled `system-map` after all
     scheduled transitions finish.
@@ -38,6 +40,8 @@
     Returns a `Promise` that resolves to the updated `system-map`."))
 
 (defprotocol Chainable
+  "Schedule state updates of an [[Application]] instance."
+
   (then! [this f]
     "Enqueue function `f` to update `this` after all currently scheduled
     transitions finish.
@@ -137,9 +141,60 @@
 
   false)
 
-(deftype Application [!state !tail]
+(deftype
+ ^{:doc
+   "Wrap the `system-map` passed to [[create]] with an instance of
+    `Application` to instrument modules, manage state, and execute transitions.
+
+    `Application` implements
+   [`IDeref`](https://cljs.github.io/api/cljs.core/IDeref),
+   [`IWatchable`](https://cljs.github.io/api/cljs.core/IWatchable), and
+   [[Thenable]] for inspecting internal system state.
+
+   ```clojure
+   ;; get current (potentially transient) system state
+   @app ; => {:module-a ,,,}
+
+   ;; call f with next settled system state
+   (application/then app f) ; => #<Promise[~]>
+
+   ;; watch app for state changes
+   (add-watch app :debug #(pr %4))
+   ```
+
+   The implementation of [[Transitionable]] and [[Extendable]] relies on
+   [[Chainable]] to execute transitions in a sequential order. The functions
+   [[up!]], [[down!]], and [[tx!]] are primarily used internally by the default
+   lifecycle commands including [[start!]], [[stop!]], [[pause!]], and
+   [[resume!]].
+
+   ```clojure
+   (when ^boolean js/goog.DEBUG ; development only
+     (application/override! app dev-overrides))
+
+     (defn ^:dev/before-load pause []
+       (application/pause! app))
+
+     (defn ^:dev/after-load resume []
+       (application/resume! app))
+   ```
+
+   However, if you want to create your own custom lifecycle commands, you can
+   use these functions directly.
+
+   ```clojure
+   (defn reset! [app]
+     (application/up! app [(module/step :reset)] :all))
+   ```
+   "}
+
+ Application
+
+ [!state !tail]
+
   IDeref
   (-deref [_] @!state)
+
   IWatchable
   (-notify-watches [_ oldval newval]
     (-notify-watches !state oldval newval))
@@ -147,9 +202,11 @@
     (-add-watch !state key f))
   (-remove-watch [_ key]
     (-remove-watch !state key))
+
   Thenable
   (then [_ f]
     (p/then @!tail f))
+
   Chainable
   (then! [_ f]
     (let [t *timeout*
@@ -169,6 +226,7 @@
                                        (str "Transition timed out. (" t " ms)")
                                        ex)))
                             (throw ex)))))))
+
   Transitionable
   (up! [_ txs ks]
     (then! _ #(transition/up % txs ks)))
@@ -176,6 +234,7 @@
     (then! _ #(transition/down % txs ks)))
   (tx! [_ txs ks]
     (then! _ #(transition/tx % txs ks)))
+
   Extendable
   (extend! [_ modules]
     modules
@@ -287,6 +346,7 @@
   (extend! app modules)
   (start! app (keys modules)))
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn init!
   "Load `config` into `app`. Returns a promise resolving to
   the new system map after start."
@@ -318,4 +378,6 @@
         (stop! app [:mod-a])
         (start! app [:mod-a])
         (pause! app [:mod-a])
-        (resume! app [:mod-a]))))
+        (resume! app [:mod-a])))
+
+  IDeref)
