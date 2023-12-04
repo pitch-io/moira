@@ -143,10 +143,11 @@
 
 (deftype
  ^{:doc
-   "Wrap the `system-map` passed to [[create]] with an instance of
-    `Application` to instrument modules, manage state, and execute transitions.
+   "Construct `Application` instances using [[create]] to properly wrap
+   `system-map`, instrument modules, and initiate state. Avoid using the
+   `->Application` conctructor directly.
 
-    `Application` implements
+   `Application` implements
    [`IDeref`](https://cljs.github.io/api/cljs.core/IDeref),
    [`IWatchable`](https://cljs.github.io/api/cljs.core/IWatchable), and
    [[Thenable]] for inspecting internal system state.
@@ -165,7 +166,7 @@
    The implementation of [[Transitionable]] and [[Extendable]] relies on
    [[Chainable]] to execute transitions in a sequential order. The functions
    [[up!]], [[down!]], and [[tx!]] are primarily used internally by the default
-   lifecycle commands including [[start!]], [[stop!]], [[pause!]], and
+   lifecycle commands, including [[start!]], [[stop!]], [[pause!]], and
    [[resume!]].
 
    ```clojure
@@ -245,14 +246,16 @@
 (s/def ::application (partial instance? Application))
 
 (defn create
-  "Create an Application instance from module definitions in `system-map`.
+  "Wrap `system-map` with an instance of `Application` to instrument modules,
+  manage state, and execute transitions.
 
-  Each entry in `system-map` defines a single module by mapping keywords to
-  the respective module-maps incorporating all configuration and state."
+  Each entry in `system-map` defines a single [[moira.module|module]] by
+  mapping a key to its respective module definition."
 
   [system-map]
 
-  {:pre [(s/valid? ::module/system-map system-map)]}
+  {:pre [(s/valid? ::module/system-map system-map)]
+   :post [(s/valid? ::application %)]}
 
   (->Application (atom system-map) (volatile! (p/resolved system-map))))
 
