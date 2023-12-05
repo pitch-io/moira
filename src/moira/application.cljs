@@ -170,6 +170,10 @@
    [[resume!]].
 
    ```clojure
+   (defn restart []
+     (application/stop! app)
+     (application/start! app))
+
    (when ^boolean js/goog.DEBUG ; development only
      (application/override! app dev-overrides))
 
@@ -260,21 +264,22 @@
   (->Application (atom system-map) (volatile! (p/resolved system-map))))
 
 (defn start!
-  "Start modules defined in `ks` and all their dependencies. Start all modules
-  defined by `app`, when no `ks` are given. Returns a promise resolving to the
-  new system map with updated module states.
+  "Start modules defined for `ks` and their dependencies. If `ks` is not
+  provided, start all modules. Returns a `Promise` that resolves to the updated
+  `system-map` after all module states have settled.
 
   Dependencies are guaranteed to be started first. `:app-log` is injected, if
   not already present, and automatically added to each module's `:deps`.
 
-  Starting a module is idempotent (i.e., `:start` is only called, when the
-  module is not already tagged as `:started`). Module `:state` is updated by
-  calling `:start` on the current value and a map of dependency keys to values
-  returned by applying respective `:export` on dependency `:state`.
-  For additional context, the module key and the `app` instance are also passed
-  to the update function.
+  When a module is started, its `:start` function is executed only if it has
+  not already been tagged as `:started`. The `:start` function takes in the
+  current `:state` of the module, dependencies, module key, and [[Application]]
+  instance as parameters. Dependencies is a map of module keys to values
+  returned by applying the dependency's `:export` function on its `:state`
+  respectively. The return value (or resolved value if a `Promise`) will become
+  the module's new `:state`.
 
-  When a circular dependency is detected, an error is thrown and starting is
+  If a circular dependency is detected, an error is thrown, and starting is
   aborted before any calls to `:start`."
 
   ([app] (start! app :all))
@@ -286,16 +291,23 @@
         ks)))
 
 (defn stop!
-  "Stop modules defined in `ks` and all their dependents. Stop all modules
-  defined by `app` when no `ks` are given. Returns a promise resolving to the
-  new system map with updated module states.
+  "Stop modules defined in `ks` and modules that depend on them. If `ks` is not
+  provided, stop all modules. Returns a `Promise` that resolves to the updated
+  `system-map` after all module states have settled.
 
-  Dependent modules are guaranteed to be stopped first. `:stop` is only called,
-  when the module is tagged as `:started`. Nothing is called when a circular
-  dependency is detected.
+  Dependent modules are guaranteed to be stopped first.
 
-  Module `:state` is updated by calling `:stop` on the current value. `:stop`
-  defaults to setting the state to `nil`."
+  When a module is stopped, its `:stop` function is executed only if it has
+  been tagged as `:started` (presumably by calling [[start!]]). The `:stop`
+  function takes in the current `:state` of the module, dependencies, module
+  key, and [[Application]] instance as parameters. Dependencies is a map of
+  module keys to values returned by applying the dependency's `:export`
+  function on its `:state` respectively. The return value (or resolved value if
+  a `Promise`) will become the module's new `:state`. If `:stop` is not
+  defined, it defaults to clearing the `:state` (i.e., returning `nil`).
+
+  If a circular dependency is detected, an error is thrown, and stopping is
+  aborted before any calls to `:stop`."
 
   ([app] (stop! app :all))
 
@@ -306,10 +318,32 @@
           ks)))
 
 (defn pause!
-  "Halt application by applying `:pause`.
+  "Pause modules defined in `ks` and modules that depend on them. If `ks` is
+  not provided, pause all modules. Returns a `Promise` that resolves to the
+  updated `system-map` after all module states have settled.
 
-  This is an alternate version of `stop` presumably called during development,
-  e.g. before hot reloading code."
+  Dependent modules are guaranteed to be paused first. This is a lightweight
+  version of [[stop!]], designed mainly for use during development.
+
+  When a module is paused, its `:pause` function is executed only if it has
+  been tagged as `:started` (presumably by calling [[start!]]) and not yet as
+  `:paused`. The `:pause` function takes in the current `:state` of the module,
+  dependencies, module key, and [[Application]] instance as parameters.
+  Dependencies is a map of module keys to values returned by applying the
+  dependency's `:export` function on its `:state` respectively. The return
+  value (or resolved value if a `Promise`) will become the module's new
+  `:state`.
+
+  If a circular dependency is detected, an error is thrown, and pausing is
+  aborted before any calls to `:pause`.
+
+      (when ^boolean js/goog.DEBUG ; development only
+        (defn ^:dev/before-load pause []
+          (application/pause! app))
+
+        (defn ^:dev/after-load resume []
+          (application/resume! app))
+  "
 
   ([app] (pause! app :all))
 
@@ -321,10 +355,24 @@
           ks)))
 
 (defn resume!
-  "Reactivate application by applying `:resume`.
+  "Resume modules defined for `ks` and their dependencies. If `ks` is not
+  provided, resume all modules. Returns a `Promise` that resolves to the
+  updated `system-map` after all module states have settled.
 
-  This is an alternate version of `start` presumably called during development,
-  e.g. after hot reloading code."
+  Dependencies are guaranteed to be resumed first. This is a lightweight
+  version of [[start!]], designed mainly for use during development. See
+  [[pause!]] for an example.
+
+  When a module is resumed, its `:resume` function is executed only if it has
+  been tagged as `:paused` (presumably by calling [[pause!]]). The `:resume`
+  function takes in the current `:state` of the module, dependencies, module
+  key, and [[Application]] instance as parameters. Dependencies is a map of
+  module keys to values returned by applying the dependency's `:export`
+  function on its `:state` respectively. The return value (or resolved value if
+  a `Promise`) will become the module's new `:state`.
+
+  If a circular dependency is detected, an error is thrown, and resuming is
+  aborted before any calls to `:resume`."
 
   ([app] (resume! app :all))
 
@@ -381,6 +429,4 @@
         (stop! app [:mod-a])
         (start! app [:mod-a])
         (pause! app [:mod-a])
-        (resume! app [:mod-a])))
-
-  IDeref)
+        (resume! app [:mod-a]))))
