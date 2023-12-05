@@ -170,7 +170,7 @@
    [[resume!]].
 
    ```clojure
-   (defn restart []
+   (defn restart! []
      (application/stop! app)
      (application/start! app))
 
@@ -382,25 +382,16 @@
          (module/step :resume app)]
         ks)))
 
-(defn load!
-  "Load modules defined in `modules` into `app`. Returns a promise resolving to
-  the new system map after start.
-
-  Updates `app` and starts all provided modules immediately. Existing modules
-  are extended and only started when not already up."
-
-  [app modules]
-
-  {:pre [(s/valid? ::application app)
-         (s/valid? ::module/system-map modules)]}
-
-  (extend! app modules)
-  (start! app (keys modules)))
-
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn init!
-  "Load `config` into `app`. Returns a promise resolving to
-  the new system map after start."
+  "Merge `config` into `app` and start modules defined for `ks` and their
+  dependencies. If `ks` is not provided, start all modules. Returns a `Promise`
+  that resolves to the updated `system-map` after all module states have
+  settled.
+
+      (defn main [api-token]
+        (application/init! app {:module-a {:token api-token}})
+
+  See [[start!]] for more details on starting an [[Application]]."
 
   ([app config]
 
@@ -417,6 +408,29 @@
 
    (override! app config)
    (start! app ks)))
+
+(defn load!
+  "Extend the `app` by adding `modules` and starting them. Merges existing
+  modules without overwriting any values that are already present. Note that
+  the `app` may already be running.  Returns a `Promise` that resolves to the
+  updated `system-map` after all module states have settled.
+
+  See [[start!]] for more details on starting modules.
+
+      (def lazy-module (shadow.lazy/loadable {:start module-c/start}))
+
+      (defn start-module-c []
+        (-> (shadow.lazy/load lazy-module)
+            (.then #(application/load! app {:module-c %}))))
+  "
+
+  [app modules]
+
+  {:pre [(s/valid? ::application app)
+         (s/valid? ::module/system-map modules)]}
+
+  (extend! app modules)
+  (start! app (keys modules)))
 
 (comment
   (let [app (create {:mod-a {:state []
