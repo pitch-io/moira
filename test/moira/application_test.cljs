@@ -205,6 +205,17 @@
         (is (= ["resume-b"] (get-in app-state [:module-b :state])))
         (is (= ["resume-c"] (get-in app-state [:module-c :state])))))))
 
+(deftest initialize-app-with-overrides
+  (let [app (application/create {:module-a {:secret "replace me!"
+                                            :start (constantly [1 2 3])}})]
+    (async-let [app-state (application/init! app {:module-a {:secret "123"}})]
+      (testing "override module definition"
+        (is (= "123" (get-in app-state [:module-a :secret]))))
+      (testing "start app"
+        (is (= [1 2 3] (get-in app-state [:module-a :state]))))
+      (testing "update app state"
+        (is (= app-state @app))))))
+
 (deftest load-modules-into-running-app
   (let [app (application/create {:module-a {}})]
     (async-let [app-state (application/load! app {:module-b
