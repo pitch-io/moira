@@ -1,4 +1,16 @@
 (ns moira.transition
+  "Apply transitions to [[moira.application/Application|Application]] by
+  wrapping it with a [[moira.context|context]] for executing the interceptor
+  chain `txs` on each module in order.
+
+  Dependencies are guaranteed to be handled appropriately. When using the
+  [[up]] transition, dependencies are inserted into the `::queue` before.
+  Conversely, they are enqueued after when using [[down]]. When a circular
+  dependency is detected, an error is thrown and execution is cancelled.
+
+  The [[moira.log.module|log]] is paused during transitions. Application Events
+  are buffered and triggered later once the system has fully settled."
+
   (:require [clojure.spec.alpha :as s]
             [moira.context :as context]
             [moira.log.txs :as log.txs]
