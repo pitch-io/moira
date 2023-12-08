@@ -50,6 +50,12 @@
       (is (= [:module-c :module-b :module-a]
              (-> (enter ctx)
                  (get ::transition/modules)
+                 util/peek-seq))))
+    (testing "restore original order by reversing again"
+      (is (= [:module-a :module-b :module-c]
+             (-> (enter ctx)
+                 (enter ctx)
+                 (get ::transition/modules)
                  util/peek-seq))))))
 
 (deftest execute-txs-test

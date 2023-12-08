@@ -291,7 +291,7 @@
         ks)))
 
 (defn stop!
-  "Stop modules defined in `ks` and modules that depend on them. If `ks` is not
+  "Stop modules defined for `ks` and modules that depend on them. If `ks` is not
   provided, stop all modules. Returns a `Promise` that resolves to the updated
   `system-map` after all module states have settled.
 
@@ -318,7 +318,7 @@
           ks)))
 
 (defn pause!
-  "Pause modules defined in `ks` and modules that depend on them. If `ks` is
+  "Pause modules defined for `ks` and modules that depend on them. If `ks` is
   not provided, pause all modules. Returns a `Promise` that resolves to the
   updated `system-map` after all module states have settled.
 

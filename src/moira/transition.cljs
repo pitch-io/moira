@@ -1,15 +1,17 @@
 (ns moira.transition
-  "Apply transitions to [[moira.application/Application|Application]] by
-  wrapping it with a [[moira.context|context]] for executing the interceptor
-  chain `txs` on each module in order.
+  "Transform `app` by wrapping it with a [[moira.context|context]] for
+  execution of the interceptor chain `txs` on each module in order. In this
+  case, `app` refers to the immutable `system-map` directly and *not* to an
+  instance of [[moira.application/Application|Application]].
 
-  Dependencies are guaranteed to be handled appropriately. When using the
-  [[up]] transition, dependencies are inserted into the `::queue` before.
-  Conversely, they are enqueued after when using [[down]]. When a circular
-  dependency is detected, an error is thrown and execution is cancelled.
+  Dependencies are handled appropriately. When applying an [[up]] transition,
+  they are inserted into the `::queue` upfront. Conversely, the transition is
+  applied to dependencies subsequently when using the [[down]] command. Any
+  circular dependency is detected ahead of execution and will throw an error.
 
-  The [[moira.log.module|log]] is paused during transitions. Application Events
-  are buffered and triggered later once the system has fully settled."
+  The [[moira.log|Application Log]] is temporarily paused during transitions.
+  All Application Events are buffered and triggered at a later stage when the
+  system has settled."
 
   (:require [clojure.spec.alpha :as s]
             [moira.context :as context]
@@ -17,39 +19,80 @@
             [moira.module :as module]
             [promesa.core :as p]))
 
-(def all? (partial = :all))
+(defn- all? [ks]
+  (= :all ks))
 
 (s/def ::module-ks (s/or :coll coll? :all all?))
 
-(defn- resolve-module-ks [app module-ks]
-  (if (all? module-ks) (keys app) module-ks))
+(defn- resolve-module-ks [app ks]
 
-(defn enqueue-modules-with-deps [modules]
+  {:pre [(s/valid? ::module-ks ks)]}
+
+  (if (all? ks) (keys app) ks))
+
+(defn enqueue-modules
+  "Returns an [[moira.context|interceptor]] that inserts `ks` into `::modules`,
+  consequently scheduling them as targets for execution."
+
+  [ks]
+
+  {:name ::enqueue-modules
+   :enter (fn [{::keys [app] :as ctx}]
+            (->> ks
+                 (resolve-module-ks app)
+                 (update ctx ::modules context/into-queue)))})
+
+(defn enqueue-modules-with-deps
+  "Returns an [[moira.context|interceptor]] that inserts `ks` and all their
+  dependencies into `::modules`, consequently scheduling them as targets for
+  execution.
+
+  Order is determined by the dependency graph so that each module is guaranteed
+  to be inserted after all its dependencies."
+
+  [ks]
+
   {:name ::enqueue-modules-with-deps
    :enter (fn [{::keys [app] :as ctx}]
-            (->> modules
+            (->> ks
                  (resolve-module-ks app)
                  (module/dependency-chain app)
                  (update ctx ::modules context/into-queue)))})
 
-(defn enqueue-modules [modules]
-  {:name ::enqueue-modules
-   :enter (fn [{::keys [app] :as ctx}]
-            (->> modules
-                 (resolve-module-ks app)
-                 (update ctx ::modules context/into-queue)))})
-
 (def reverse-modules
+  "[[moira.context|Interceptor]] that reverses the order of `::modules`
+  scheduled as targets for execution.
+
+  [[down]] uses this interceptor to ensure each dependency is targeted after
+  all its dependent modules."
+
   {:name ::reverse-modules
    :enter (fn [ctx]
-            (update ctx ::modules (partial into [])))})
+            (update ctx ::modules #(context/into-queue [] (reverse %))))})
 
-(defn execute-txs-1 [{::keys [modules txs] :as ctx}]
+(defn execute-txs-1
+  "Dequeue the next item from `::modules` and [[moira.module/execute|execute]]
+  the interceptor chain `::txs` targeting this module.
+
+  Returns a `Promise` resolving to the updated [[moira.context|context]]
+  `ctx`."
+
+  [{::keys [modules txs] :as ctx}]
+
   (p/-> ctx
         (assoc ::modules (pop modules))
         (module/execute (peek modules) txs)))
 
-(defn execute-txs [txs]
+(defn execute-txs
+  "Returns an [[moira.context|interceptor]] for iterating over `::modules` to
+  [[moira.module/execute|execute]] `txs` in the context of each module
+  independently.
+
+  The interceptor's `:enter` function will return a `Promise` that resolves to
+  the updated [[moira.context|context]]."
+
+  [txs]
+
   {:name ::execute-txs
    :enter (fn [ctx]
             (p/loop [{::keys [modules] :as ctx}
@@ -60,13 +103,19 @@
 
 (def ^:private n (namespace ::_))
 
-(defn execute [app txs]
+(defn execute
+  "Wrap `app` with a [[moira.context|context]] for execution and apply the
+  transition `txs` on each module respectively. Returns a `Promise` that
+  resolves to the updated `system-map`."
+
+  [app txs]
+
   (p/-> {::app app}
         (context/execute n txs)
         (get ::app)))
 
 (defn up
-  "Elevate modules defined in `ks` and all their dependencies by applying the
+  "Elevate modules defined for `ks` and all their dependencies by applying the
   interceptor chain `txs` in the context of each module respectively. Returns a
   new application with updated module states.
 
@@ -87,8 +136,7 @@
                 (execute-txs txs)]))
 
 (defn down
-
-  "Degrade modules defined in `ks` and all their dependencies by applying the
+  "Degrade modules defined for `ks` and all their dependencies by applying the
   interceptor chain `txs` in the context of each module respectively. Returns a
   new application with updated module states.
 
@@ -107,8 +155,7 @@
                 (execute-txs txs)]))
 
 (defn tx
-
-  "Update modules defined in `ks` by applying the interceptor chain `txs` in
+  "Update modules defined for `ks` by applying the interceptor chain `txs` in
   the context of each module respectively. Returns a new application with
   updated module states.
 
