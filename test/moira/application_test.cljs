@@ -73,20 +73,20 @@
 (deftest stop-modules-test
   (let [app (application/create {:module-a {:deps #{:module-b}
                                             :state ["init-a" "start-a"]
-                                            :stop pop
+                                            :stop #(conj % "stop-a")
                                             :tags #{:started}}
                                  :module-b {:state ["init-b" "start-b"]
-                                            :stop pop
+                                            :stop #(conj % "stop-b")
                                             :tags #{:started}}})]
     (async-let [app-state (application/stop! app [:module-a])]
       (testing "module is updated"
-        (is (= ["init-a"] (get-in app-state [:module-a :state]))))
-      (testing "dependencies are updated"
-        (is (= ["init-b"] (get-in app-state [:module-b :state]))))
+        (is (= ["init-a" "start-a" "stop-a"]
+               (get-in app-state [:module-a :state]))))
+      (testing "dependencies are not updated"
+        (is (= ["init-b" "start-b"]
+               (get-in app-state [:module-b :state]))))
       (testing "modules are untagged"
-        (is (= #{}
-               (get-in app-state [:module-a :tags])
-               (get-in app-state [:module-b :tags]))))
+        (is (= #{} (get-in app-state [:module-a :tags]))))
       (testing "update state"
         (is (= app-state @app))))))
 
@@ -127,12 +127,10 @@
     (async-let [app-state (application/pause! app [:module-a :module-c])]
       (testing "module is updated"
         (is (= ["started-a" "pause-a"] (get-in app-state [:module-a :state]))))
-      (testing "dependencies are updated"
-        (is (= ["started-b" "pause-b"] (get-in app-state [:module-b :state]))))
+      (testing "dependencies are not updated"
+        (is (= ["started-b"] (get-in app-state [:module-b :state]))))
       (testing "modules are tagged"
-        (is (= #{:started :paused}
-               (get-in app-state [:module-a :tags])
-               (get-in app-state [:module-b :tags]))))
+        (is (= #{:started :paused} (get-in app-state [:module-a :tags]))))
       (testing "idle modules are not paused"
         (is (= ["not-started"] (get-in app-state [:module-c :state])))
         (is (= #{} (get-in app-state [:module-c :tags]))))

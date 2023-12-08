@@ -31,44 +31,27 @@
   (if (all? ks) (keys app) ks))
 
 (defn enqueue-modules
-  "Returns an [[moira.context|interceptor]] that inserts `ks` into `::modules`,
-  consequently scheduling them as targets for execution."
+  "Returns an [[moira.context|interceptor]] that inserts `ks` into `::modules`
+  to schedule them as targets for a transition. The order of execution is
+  determined by the dependency graph, so each module is guaranteed to be
+  inserted after its dependencies.
 
-  [ks]
+  If the `include-deps?` option is enabled, the queue will include missing
+  dependencies. The `reverse?` option inverts execution order."
+
+  [ks & {:keys [include-deps? reverse?]}]
 
   {:name ::enqueue-modules
    :enter (fn [{::keys [app] :as ctx}]
-            (->> ks
-                 (resolve-module-ks app)
-                 (update ctx ::modules context/into-queue)))})
-
-(defn enqueue-modules-with-deps
-  "Returns an [[moira.context|interceptor]] that inserts `ks` and all their
-  dependencies into `::modules`, consequently scheduling them as targets for
-  execution.
-
-  Order is determined by the dependency graph so that each module is guaranteed
-  to be inserted after all its dependencies."
-
-  [ks]
-
-  {:name ::enqueue-modules-with-deps
-   :enter (fn [{::keys [app] :as ctx}]
-            (->> ks
-                 (resolve-module-ks app)
-                 (module/dependency-chain app)
-                 (update ctx ::modules context/into-queue)))})
-
-(def reverse-modules
-  "[[moira.context|Interceptor]] that reverses the order of `::modules`
-  scheduled as targets for execution.
-
-  [[down]] uses this interceptor to ensure each dependency is targeted after
-  all its dependent modules."
-
-  {:name ::reverse-modules
-   :enter (fn [ctx]
-            (update ctx ::modules #(context/into-queue [] (reverse %))))})
+            (let [ks* (resolve-module-ks app ks)
+                  emit (fn [deps]
+                         (cond->> deps
+                           (not include-deps?) (filter (set ks*))
+                           reverse? reverse))]
+              (->> ks*
+                   (module/dependency-chain app)
+                   emit
+                   (update ctx ::modules context/into-queue))))})
 
 (defn execute-txs-1
   "Dequeue the next item from `::modules` and [[moira.module/execute|execute]]
@@ -105,7 +88,7 @@
 
 (defn execute
   "Wrap `app` with a [[moira.context|context]] for execution and apply the
-  transition `txs` on each module respectively. Returns a `Promise` that
+  interceptor chain `txs` on each module respectively. Returns a `Promise` that
   resolves to the updated `system-map`."
 
   [app txs]
@@ -121,7 +104,7 @@
 
   Dependencies are guaranteed to be updated first. `:app-log` is injected, if
   not already present, and automatically added to each module's `:deps`. When a
-  circular dependency is detected, an error is thrown and no updates are
+  circular dependency is detected, an error is thrown, and no updates are
   applied."
 
   [app txs ks]
@@ -132,7 +115,7 @@
 
   (execute app [log.txs/inject
                 log.txs/pause
-                (enqueue-modules-with-deps ks)
+                (enqueue-modules ks :include-deps? true)
                 (execute-txs txs)]))
 
 (defn down
@@ -141,7 +124,7 @@
   new application with updated module states.
 
   Dependencies are guaranteed to be updated in reverse order. When a circular
-  dependency is detected, an error is thrown and no updates are applied."
+  dependency is detected, an error is thrown, and no updates are applied."
 
   [app txs ks]
 
@@ -150,8 +133,7 @@
          (s/valid? ::module-ks ks)]}
 
   (execute app [log.txs/pause
-                (enqueue-modules-with-deps ks)
-                reverse-modules
+                (enqueue-modules ks :reverse? true)
                 (execute-txs txs)]))
 
 (defn tx

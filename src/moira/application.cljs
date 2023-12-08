@@ -291,11 +291,11 @@
         ks)))
 
 (defn stop!
-  "Stop modules defined for `ks` and modules that depend on them. If `ks` is not
-  provided, stop all modules. Returns a `Promise` that resolves to the updated
-  `system-map` after all module states have settled.
+  "Stop modules defined for `ks`. If `ks` is not provided, stop all modules.
+  Returns a `Promise` that resolves to the updated `system-map` after all
+  module states have settled.
 
-  Dependent modules are guaranteed to be stopped first.
+  Dependencies are guaranteed to be stopped after depending modules.
 
   When a module is stopped, its `:stop` function is executed only if it has
   been tagged as `:started` (presumably by calling [[start!]]). The `:stop`
@@ -318,12 +318,12 @@
           ks)))
 
 (defn pause!
-  "Pause modules defined for `ks` and modules that depend on them. If `ks` is
-  not provided, pause all modules. Returns a `Promise` that resolves to the
-  updated `system-map` after all module states have settled.
+  "Pause modules defined for `ks`. If `ks` is not provided, pause all modules.
+  Returns a `Promise` that resolves to the updated `system-map` after all
+  module states have settled.
 
-  Dependent modules are guaranteed to be paused first. This is a lightweight
-  version of [[stop!]], designed mainly for use during development.
+  Dependencies are guaranteed to be paused after depending modules. This is a
+  lightweight version of [[stop!]], designed mainly for use during development.
 
   When a module is paused, its `:pause` function is executed only if it has
   been tagged as `:started` (presumably by calling [[start!]]) and not yet as

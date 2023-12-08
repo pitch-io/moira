@@ -18,24 +18,13 @@
         (list :module-a :module-b) [:module-a :module-b :module-c :module-d]
         [:module-a :module-b] [:module-a :module-b :module-c :module-d]))))
 
-(deftest enqueue-module-with-deps-test
-  (let [{:keys [enter]} (transition/enqueue-modules-with-deps [:module-c :module-d])]
-    (testing "push modules onto queue"
-      (are [before after] (= after (-> {::transition/modules before}
-                                       enter
-                                       (get ::transition/modules)
-                                       util/peek-seq))
-        nil [:module-c :module-d]
-        #queue [:module-a :module-b] [:module-a :module-b :module-c :module-d]
-        (list :module-a :module-b) [:module-a :module-b :module-c :module-d]
-        [:module-a :module-b] [:module-a :module-b :module-c :module-d]))))
-
 (deftest enqueue-dependency-tree-test
   (let [app {:module-a {:deps #{:module-c}}
              :module-b {:deps #{:module-a}}
              :module-c {}
              :module-d {}}
-        {:keys [enter]} (transition/enqueue-modules-with-deps [:module-b])
+        {:keys [enter]} (transition/enqueue-modules [:module-b]
+                                                    {:include-deps? true})
         ctx {::transition/app app}]
     (testing "inject chain of dependencies in order"
       (is (= [:module-c :module-a :module-b]
@@ -43,18 +32,17 @@
                  (get ::transition/modules)
                  util/peek-seq))))))
 
-(deftest reverse-modules-test
-  (let [{:keys [enter]} transition/reverse-modules
-        ctx {::transition/modules #queue [:module-a :module-b :module-c]}]
+(deftest enqueue-modules-reversed-test
+  (let [{:keys [enter]} (transition/enqueue-modules [:module-b :module-d]
+                                                    {:include-deps? true
+                                                     :reverse? true})
+        ctx {::transition/app {:module-a {:deps #{:module-c}}
+                               :module-b {:deps #{:module-a}}
+                               :module-c {}
+                               :module-d {}}}]
     (testing "reverse order of modules"
-      (is (= [:module-c :module-b :module-a]
+      (is (= [:module-d :module-b :module-a :module-c]
              (-> (enter ctx)
-                 (get ::transition/modules)
-                 util/peek-seq))))
-    (testing "restore original order by reversing again"
-      (is (= [:module-a :module-b :module-c]
-             (-> (enter ctx)
-                 (enter ctx)
                  (get ::transition/modules)
                  util/peek-seq))))))
 
