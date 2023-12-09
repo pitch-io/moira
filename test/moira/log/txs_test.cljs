@@ -7,42 +7,50 @@
             [moira.transition :as transition]))
 
 (deftest ensure-dependency-test
-  (let [{:keys [enter]} (log.txs/ensure-dependency :default-module)]
+  (let [{:keys [enter]} log.txs/ensure-dependency]
     (testing "add dependency to empty dependencies"
-      (is (= #{:default-module}
+      (is (= #{:app-log}
              (-> {::transition/app {:module-a {}}
                   ::module/current :module-a}
                  enter
                  (get-in [::transition/app :module-a :deps])))))
     (testing "add dependency to existing dependencies"
-      (is (= #{:default-module :module-b}
+      (is (= #{:app-log :module-b}
              (-> {::transition/app {:module-a {:deps #{:module-b}}}
                   ::module/current :module-a}
                  enter
                  (get-in [::transition/app :module-a :deps])))))
     (testing "do not add dependency to itself"
       (is (= #{:module-a}
-             (-> {::transition/app {:default-module {:deps #{:module-a}}}
-                  ::module/current :default-module}
+             (-> {::transition/app {:app-log {:deps #{:module-a}}}
+                  ::module/current :app-log}
                  enter
-                 (get-in [::transition/app :default-module :deps])))))))
+                 (get-in [::transition/app :app-log :deps])))))))
 
 (deftest inject-test
-  (with-redefs [log.txs/ensure-dependency (fn [k] {:name ::ensure-dependency
-                                                   :key k})]
-    (let [{:keys [enter]} log.txs/inject
-          {::transition/keys [app modules txs]}
-          (enter {::transition/app
-                  {:app-log {:state "existing-app-log-state"}}})]
-      (testing "updates app to include module"
-        (let [app-log (:app-log app)]
-          (is (= log.module/default
-                 (select-keys app-log (keys log.module/default))))
-          (is (= "existing-app-log-state" (:state app-log)))))
-      (testing "enqueues module"
-        (is (= [:app-log] modules)))
-      (testing "esure dependency"
-        (is (= [{:name ::ensure-dependency :key :app-log}] txs))))))
+  (let [{:keys [enter]} log.txs/inject
+        {::transition/keys [app modules txs]}
+        (enter {::transition/app {:app-log {:state "existing-app-log-state"}}
+                ::transition/modules [:module-a :module-b]})]
+    (testing "updates app to include module"
+      (let [app-log (:app-log app)]
+        (is (= log.module/default
+               (select-keys app-log (keys log.module/default))))
+        (is (= "existing-app-log-state" (:state app-log)))))
+    (testing "enqueues module"
+      (is (= [:app-log :module-a :module-b] modules)))
+    (testing "esure dependency"
+      (is (= [log.txs/ensure-dependency] txs)))))
+
+(deftest inject-only-once-test
+  (let [{:keys [enter]} log.txs/inject
+        {::transition/keys [modules txs]}
+        (enter {::transition/modules [:module-a :app-log :module-b]
+                ::transition/txs [{:name ::something} log.txs/ensure-dependency]})]
+    (testing "enqueues module only if not present"
+      (is (= [:module-a :app-log :module-b] modules)))
+    (testing "add interceptor only if not present"
+      (is (= [{:name ::something} log.txs/ensure-dependency] txs)))))
 
 (deftest pause-test
   (let [!calls (atom nil)

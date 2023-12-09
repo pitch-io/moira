@@ -2,33 +2,37 @@
   (:require [moira.context :as context]
             [moira.log.event-emitter :as event-emitter]
             [moira.log.module :as log.module]
-            [moira.module :as module]))
+            [moira.module :as module]
+            [moira.transition :as-alias transition]))
 
-(defn ensure-dependency [k]
+(def ensure-dependency
   {:name ::ensure-dependency
    :enter (fn [{::module/keys [current] :as ctx}]
             (cond-> ctx
-              (not= current k)
-              (update-in [:moira.transition/app current :deps]
+              (not= current :app-log)
+              (update-in [::transition/app current :deps]
                          (comp set conj)
-                         k)))})
+                         :app-log)))})
+
+(defn- enqueue-if-missing [xs x]
+  (context/into-queue (if (some #{x} xs) [] [x]) xs))
 
 (def inject
   {:name ::inject
    :enter (fn [ctx]
             (-> ctx
-                (update-in [:moira.transition/app :app-log]
+                (update-in [::transition/app :app-log]
                            (partial merge log.module/default))
-                (update :moira.transition/modules
-                        context/into-queue
-                        [:app-log])
-                (update :moira.transition/txs
-                        context/into-queue
-                        [(ensure-dependency :app-log)])))})
+                (update ::transition/modules
+                        enqueue-if-missing
+                        :app-log)
+                (update ::transition/txs
+                        enqueue-if-missing
+                        ensure-dependency)))})
 
 (defn- doto-event-emitter [ctx f]
   (when-let [{:keys [event-emitter]}
-             (get-in ctx [:moira.transition/app :app-log :state])]
+             (get-in ctx [::transition/app :app-log :state])]
     (f event-emitter))
   ctx)
 

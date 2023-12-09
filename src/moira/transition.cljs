@@ -119,12 +119,14 @@
                 (execute-txs txs)]))
 
 (defn down
-  "Degrade modules defined for `ks` and all their dependencies by applying the
-  interceptor chain `txs` in the context of each module respectively. Returns a
-  new application with updated module states.
+  "Degrade modules defined for `ks` by applying the interceptor chain `txs` in
+  the context of each module respectively. Returns a new application with
+  updated module states.
 
-  Dependencies are guaranteed to be updated in reverse order. When a circular
-  dependency is detected, an error is thrown, and no updates are applied."
+  Dependencies are guaranteed to be updated after depending modules. `:app-log`
+  is injected, if not already present, and automatically added to each module's
+  `:deps`. When a circular dependency is detected, an error is thrown, and no
+  updates are applied."
 
   [app txs ks]
 
@@ -132,7 +134,8 @@
          (s/valid? ::context/txs txs)
          (s/valid? ::module-ks ks)]}
 
-  (execute app [log.txs/pause
+  (execute app [log.txs/inject
+                log.txs/pause
                 (enqueue-modules ks :reverse? true)
                 (execute-txs txs)]))
 
@@ -141,7 +144,8 @@
   the context of each module respectively. Returns a new application with
   updated module states.
 
-  Dependencies are not updated. `:app-log` is expected to be present already."
+  Dependencies are not updated. `:app-log` is injected, if not already present,
+  and automatically added to each module's `:deps`. "
 
   [app txs ks]
 
@@ -149,6 +153,7 @@
          (s/valid? ::context/txs txs)
          (s/valid? ::module-ks ks)]}
 
-  (execute app [log.txs/pause
+  (execute app [log.txs/inject
+                log.txs/pause
                 (enqueue-modules ks)
                 (execute-txs txs)]))
