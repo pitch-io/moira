@@ -2,6 +2,11 @@
 
 ## [Unreleased][HEAD]
 
+* Exhaustive API documentation
+* `down` transitions (e.g., `stop!`, `pause!`) no longer include dependencies
+  for execution
+* Inject `:app-log` on all transitions (including `down` and `tx`)
+
 ## [v0.8.0-alpha][0.8.0-alpha]
 2023-11-13
 
