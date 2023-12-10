@@ -1,17 +1,18 @@
 (ns moira.transition
   "Transform `app` by wrapping it with a [[moira.context|context]] for
-  execution of the interceptor chain `txs` on each module in order. In this
-  case, `app` refers to the immutable `system-map` directly and *not* to an
-  instance of [[moira.application/Application|Application]].
+  execution of the interceptor chain `txs` on each module in order.
+
+  In this case, `app` refers to the immutable `system-map` directly and *not*
+  to an instance of [[moira.application/Application|Application]].
 
   Dependencies are handled appropriately. When applying an [[up]] transition,
   they are inserted into the `::queue` upfront. Conversely, the transition is
   applied to dependencies subsequently when using the [[down]] command. Any
   circular dependency is detected ahead of execution and will throw an error.
 
-  The [[moira.log|Application Log]] is temporarily paused during transitions.
-  All Application Events are buffered and triggered at a later stage when the
-  system has settled."
+  The [[moira.log.module|Application Log]] is temporarily paused during
+  transitions. All Application Events are buffered and triggered at a later
+  stage when the system has settled."
 
   (:require [clojure.spec.alpha :as s]
             [moira.context :as context]

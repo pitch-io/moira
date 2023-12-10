@@ -10,7 +10,7 @@
 (s/def ::start ifn?)
 (s/def ::state any?)
 (s/def ::stop ifn?)
-(s/def ::tags (s/nilable set?)) ;; gets set by the lifecycle fns, not in the initial, user-provided system-map
+(s/def ::tags set?)
 (s/def ::module
   (s/keys :opt-un [::deps
                    ::export
