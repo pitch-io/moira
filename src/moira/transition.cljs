@@ -102,8 +102,9 @@
   interceptor chain `txs` in the context of each module respectively. Returns a
   new application with updated module states.
 
-  Dependencies are guaranteed to be updated first. `:app-log` is injected, if
-  not already present, and automatically added to each module's `:deps`. When a
+  Dependencies are updated first, so each module's transition is guaranteed to
+  be applied before any depending modules. `:app-log` is injected, if not
+  already present, and automatically added to each module's `:deps`. When a
   circular dependency is detected, an error is thrown, and no updates are
   applied."
 
@@ -123,10 +124,11 @@
   the context of each module respectively. Returns a new application with
   updated module states.
 
-  Dependencies are guaranteed to be updated after depending modules. `:app-log`
-  is injected, if not already present, and automatically added to each module's
-  `:deps`. When a circular dependency is detected, an error is thrown, and no
-  updates are applied."
+  No additional dependencies are added, and order of execution is reversed.
+  Consequently, each module's transition is guaranteed to be applied *after*
+  any depending modules. `:app-log` is injected, if not already present, and
+  automatically added to each module's `:deps`. When a circular dependency is
+  detected, an error is thrown, and no updates are applied."
 
   [app txs ks]
 
@@ -144,8 +146,11 @@
   the context of each module respectively. Returns a new application with
   updated module states.
 
-  Dependencies are not updated. `:app-log` is injected, if not already present,
-  and automatically added to each module's `:deps`. "
+  No additional dependencies are added, but order of execution is preserved.
+  Consequently, each module's transition is guaranteed to be applied *before*
+  any depending modules. `:app-log` is injected, if not already present, and
+  automatically added to each module's `:deps`. When a circular dependency is
+  detected, an error is thrown, and no updates are applied."
 
   [app txs ks]
 

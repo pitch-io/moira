@@ -268,8 +268,9 @@
   provided, start all modules. Returns a `Promise` that resolves to the updated
   `system-map` after all module states have settled.
 
-  Dependencies are guaranteed to be started first. `:app-log` is injected, if
-  not already present, and automatically added to each module's `:deps`.
+  Dependencies are started first, so each module's transition is guaranteed to
+  be applied before any depending modules. `:app-log` is injected, if not
+  already present, and automatically added to each module's `:deps`.
 
   When a module is started, its `:start` function is executed only if it has
   not already been tagged as `:started`. The `:start` function takes in the
@@ -295,7 +296,9 @@
   Returns a `Promise` that resolves to the updated `system-map` after all
   module states have settled.
 
-  Dependencies are guaranteed to be stopped after depending modules.
+  Dependencies are not stopped, and order of execution is reversed.
+  Consequently, each module's transition is guaranteed to be applied *after*
+  any depending modules.
 
   When a module is stopped, its `:stop` function is executed only if it has
   been tagged as `:started` (presumably by calling [[start!]]). The `:stop`
@@ -322,8 +325,10 @@
   Returns a `Promise` that resolves to the updated `system-map` after all
   module states have settled.
 
-  Dependencies are guaranteed to be paused after depending modules. This is a
-  lightweight version of [[stop!]], designed mainly for use during development.
+  Dependencies are not paused, and order of execution is reversed.
+  Consequently, each module's transition is guaranteed to be applied *after*
+  any depending modules. This is a lightweight version of [[stop!]], designed
+  mainly for use during development.
 
   When a module is paused, its `:pause` function is executed only if it has
   been tagged as `:started` (presumably by calling [[start!]]) and not yet as
@@ -359,7 +364,8 @@
   provided, resume all modules. Returns a `Promise` that resolves to the
   updated `system-map` after all module states have settled.
 
-  Dependencies are guaranteed to be resumed first. This is a lightweight
+  Dependencies are resumed first, so each module's transition is guaranteed to
+  be applied before any depending modules. This is a lightweight
   version of [[start!]], designed mainly for use during development. See
   [[pause!]] for an example.
 
