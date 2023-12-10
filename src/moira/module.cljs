@@ -1,4 +1,11 @@
 (ns moira.module
+  "Apply the [[moira.transition|transition]] defined on the given
+  [[moira.context|context]] in the scope of each individual module
+  sequentially, following the order of the dependency graph.
+
+  Inside this namespace, `app` refers to the immutable `system-map` directly
+  and *not* to an instance of [[moira.application/Application|Application]]."
+
   (:require [clojure.spec.alpha :as s]
             [moira.context :as context]
             [promesa.core :as p]))
@@ -23,20 +30,33 @@
 (s/def ::system-map
   (s/map-of any? ::module))
 
-(defn- ex-cyclic-deps [k visited]
-  (ex-info "Start aborted due to cyclic dependency"
+(defn ex-cyclic-deps
+  "Returns an error with specific type and data for when a cyclic dependency
+  was detected."
+
+  [k visited]
+
+  (ex-info "Aborted due to cyclic dependency!"
            {:type ::cycle-detected
             :target k
             :cycle visited}))
 
-(defn ex-cyclic-deps? [e]
+(defn ex-cyclic-deps?
+  "Test helper for checking on error created by [[ex-cyclic-deps]]."
+
+  [e]
+
   (= ::cycle-detected (:type (ex-data e))))
 
 (defn postwalk-deps
-  "Get the chain of dependencies depth-first and post-order.
+  "Get the chain of dependencies for module `k`, depth-first and post-order.
 
-  Aborts by throwing `ex-cyclic-deps` when a circular dependency is detected."
+  `app` must be a `system-map` including all relevant module definitions.
+  Aborts by throwing [[ex-cyclic-deps]] when a circular dependency is
+  detected."
+
   [app k]
+
   (let [walk (fn walk [k visited]
                (if (contains? visited k)
                  (throw (ex-cyclic-deps k visited))
@@ -47,11 +67,22 @@
     (walk k #{})))
 
 (defn dependency-chain
-  "Returns deduped list of dependencies for module `ks`."
+  "Returns a lazy sequence of modules `ks` and all their dependencies, without
+  duplicates and in the order of the dependency graph.
+
+  `app` must be a `system-map` including all relevant module definitions.
+  Aborts by throwing [[ex-cyclic-deps]] when a circular dependency is
+  detected."
+
   [app ks]
+
   (sequence (comp (mapcat (partial postwalk-deps app)) (distinct)) ks))
 
-(def ^:private n (namespace ::_))
+(def ^:private n
+  "Corresponding interceptors operate on a qualified `::queue` and `::stack`
+  scoped to this namespace."
+
+  (namespace ::_))
 
 (defn execute
   "Execute interceptors `txs` with current module `k` on transition `ctx`."

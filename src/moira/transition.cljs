@@ -2,8 +2,8 @@
   "Transform `app` by wrapping it with a [[moira.context|context]] for
   execution of the interceptor chain `txs` on each module in order.
 
-  In this case, `app` refers to the immutable `system-map` directly and *not*
-  to an instance of [[moira.application/Application|Application]].
+  Inside this namespace, `app` refers to the immutable `system-map` directly
+  and *not* to an instance of [[moira.application/Application|Application]].
 
   Dependencies are handled appropriately. When applying an [[up]] transition,
   they are inserted into the `::queue` upfront. Conversely, the transition is
@@ -12,7 +12,10 @@
 
   The [[moira.log.module|Application Log]] is temporarily paused during
   transitions. All Application Events are buffered and triggered at a later
-  stage when the system has settled."
+  stage when the system has settled.
+
+  Corresponding interceptors operate on a qualified `::queue` and `::stack`
+  scoped to this namespace."
 
   (:require [clojure.spec.alpha :as s]
             [moira.context :as context]
