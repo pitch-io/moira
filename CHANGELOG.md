@@ -9,7 +9,7 @@
 * Plugins can extend the module with additional keys
 
 ## [v0.8.0-alpha][0.8.0-alpha]
-2023-11-13
+2023-12-11
 
 Initial codebase extracted from the [Pitch](https://github.com/pitch-io)
 private monorepo.
