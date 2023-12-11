@@ -136,20 +136,20 @@ bb test:watch
 
 ### Release
 
-1. Update [CHANGELOG](CHANGELOG.md) and [README](README.md). Commit changes.
+Update [CHANGELOG](CHANGELOG.md) and [README](README.md). Commit changes.
 
 ```bash
 git commit -a -m "Prepare release."
 ```
 
-2. Tag commit with the new version and description. Push tagged commit.
+Tag commit with the new version and description. Push tagged commit.
 
 ```bash
 git tag -a v0.1.0 -m "First release."
 git push --follow-tags
 ```
 
-3. Check version and publish release on Clojars.
+Check version and publish release on Clojars.
 
 ```bash
 bb release:version
