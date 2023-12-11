@@ -2,6 +2,8 @@
 
 # Moira
 
+[![Clojars Project](https://img.shields.io/clojars/v/com.pitch/moira.svg)](https://clojars.org/com.pitch/moira)
+
 Modular frontend applications in [ClojureScript][cljs].
 
 > The most fundamental problem in computer science is *problem decomposition*:

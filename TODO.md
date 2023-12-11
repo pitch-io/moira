@@ -2,7 +2,7 @@
 
 ## Doing
 - [x] Create tasklist & changelog
-- [ ] Publish on [clojars](https://clojars.org) `v0.8.0-alpha`
+- [x] Publish on [clojars](https://clojars.org) `v0.8.0-alpha`
 - [ ] Improve API docs `v0.8.0`
 
 ## Upcoming
