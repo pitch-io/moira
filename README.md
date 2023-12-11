@@ -49,7 +49,7 @@ Add Moira to your project dependencies:
 
 ```cljs
 {:deps
- {io.github.pitch-io/moira {:git/tag "v0.8.0-alpha" :git/sha "44580e2"}}}
+ {io.github.pitch-io/moira {:mvn/version "v0.8.0-alpha"}}}
 ```
 
 Configure and start a `system` for bootstrapping your application:
@@ -130,6 +130,28 @@ on changes:
 
 ```bash
 bb test:watch
+```
+
+### Release
+
+1. Update [CHANGELOG](CHANGELOG.md) and [README](README.md). Commit changes.
+
+```bash
+git commit -a -m "Prepare release."
+```
+
+2. Tag commit with the new version and description. Push tagged commit.
+
+```bash
+git tag -a v0.1.0 -m "First release."
+git push --follow-tags
+```
+
+3. Check version and publish release on Clojars.
+
+```bash
+bb release:version
+CLOJARS_USERNAME=username CLOJARS_PASSWORD=clojars-token bb release:publish
 ```
 
 ---

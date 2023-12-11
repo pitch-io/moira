@@ -1,0 +1,3 @@
+{:group-id "com.pitch"
+ :artifact-id "moira"
+ :scm-url "https://github.com/pitch-io/moira"}

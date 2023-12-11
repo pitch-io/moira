@@ -20,4 +20,8 @@
          test:once {:doc "Compile and run unit tests."
                     :task (do
                             (shell "npx shadow-cljs compile test")
-                            (shell "npx karma start --single-run"))}}}
+                            (shell "npx karma start --single-run"))}
+         release:publish {:doc "Publish latest tagged release to Clojars."
+                          :task (apply clojure "-M:release" *command-line-args*)}
+         release:version {:doc "Get current release version from tags."
+                          :task (clojure "-M:release version")}}}
