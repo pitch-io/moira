@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.pitch</groupId>
+  <artifactId>moira</artifactId>
+  <version>0.8.0-alpha</version>
+  <name>moira</name>
+  <dependencies>
+    <dependency>
+      <groupId>funcool</groupId>
+      <artifactId>promesa</artifactId>
+      <version>9.2.542</version>
+    </dependency>
+  </dependencies>
+  <build>
+    <sourceDirectory>src</sourceDirectory>
+  </build>
+  <repositories/>
+  <scm>
+    <url>https://github.com/pitch-io/moira</url>
+    <tag>9d312b610162cf771a07272eee6d41956e28f17e</tag>
+    <connection>scm:git:git@github.com:pitch-io/moira.git</connection>
+    <developerConnection>scm:git:git@github.com:pitch-io/moira.git</developerConnection>
+  </scm>
+  <licenses>
+    <license>
+      <name>MIT</name>
+      <url>https://github.com/pitch-io/moira/blob/main/LICENSE</url>
+    </license>
+  </licenses>
+</project>
