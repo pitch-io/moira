@@ -8,6 +8,7 @@
 ## Upcoming
 - [ ] Set up [cljkondo](https://github.com/clj-kondo/clj-kondo) `v0.8.0`
 - [ ] Set up [cljdoc](https://cljdoc.org) `v0.8.0`
+- [ ] Migrate to [tools.bbuild](https://github.com/babashka/tools.bbuild)
 
 ## Backlog
 - [ ] Write getting started guide with [ascidoctor](https://asciidoctor.org)
