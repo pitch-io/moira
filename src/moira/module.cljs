@@ -122,7 +122,15 @@
         module* (into {} (map #(vector % (get module %))) ks)]
     (apply merge-with #(%2 %1) module* plugins)))
 
-(defn- exports [ctx ks]
+(defn exports
+  "Returns a map of module `ks` to exports.
+
+  Each export is the result of applying the respective module's `:export`
+  function on the module's current `:state`. `:export` must be free of
+  side-effects."
+
+  [ctx ks]
+
   (reduce (fn [m k]
             (let [{:keys [export state]
                    :or {export (constantly nil)}}
@@ -132,17 +140,27 @@
           ks))
 
 (defn step
-  "Returns an interceptor that will update the current module's state by
-  applying the function returned by calling `f` on the module. The update
-  function is passed the current state of the module, exports from its
-  dependencies, its module key in the system map, and any additional
-  arguments."
-  [f & args]
+  "Returns an [[moira.context|interceptor]] that updates the `::current`
+  module's state by applying the function returned from calling `f` on the
+  module. Typically,`f` will be a keyword, but it can be any function.
+
+  The update function receives the module's current `:state`, [[exports]] from
+  dependencies, the module key defined in the `system-map`, and any additional
+  arguments. The default implementations of
+  [[moira.application/start!|start!]], [[moira.application/stop!|stop!]],
+  [[moira.application/pause!|pause!]], and
+  [[moira.application/resume!|resume!]], for example, pass the current
+  [[moira.application/Application|Application]] instance as trailing parameter.
+  The return value from the update call (or resolved value if a `Promise`) will
+  become the module's new `:state`."
+
+  [k & args]
+
   {:name ::step
    :enter (fn [{::keys [current] :as ctx}]
             (let [{:keys [deps state] :as module}
                   (get-in ctx [::transition/app current])]
-              (if-let [update-state (f (with-plugins module))]
+              (if-let [update-state (k (with-plugins module))]
                 (p/let [state* (apply update-state
                                       state
                                       (exports ctx deps)
@@ -152,9 +170,16 @@
                 ctx)))})
 
 (defn enter
-  "Returns an interceptor that terminates execution if `k` is already present
-  in `:tags`. Updates `:tags` to contain `k` on leave."
+  "Returns an [[moira.context|interceptor]] that terminates execution if `k` is
+  already present in the `::current` module's `:tags`. Updates `:tags` to
+  contain `k` on leave.
+
+  This can be used to ensure a transition like
+  [[moira.application/start!|start!]] is only applied once on modules that are
+  not already `:started`."
+
   [k]
+
   {:name ::enter
    :enter (fn [{::keys [current] :as ctx}]
             (let [{:keys [tags]} (get-in ctx [::transition/app current])]
@@ -172,9 +197,16 @@
       (not (contains? tags k)) terminate)))
 
 (defn exit
-  "Returns an interceptor that terminates execution if `k` is not present in
-  `:tags`. Updates `:tags` to no longer contain `k` on leave."
+  "Returns an [[moira.context|interceptor]] that terminates execution if `k` is
+  *not* present in the `::current` module's `:tags`. Updates `:tags` to no
+  longer contain `k` on leave.
+
+  This can be used to ensure a transition like
+  [[moira.application/stop!|stop!]] is only applied for modules that are
+  currently `:started`."
+
   [k]
+
   {:name ::exit
    :enter #(terminate-when-not-tagged-as % k)
    :leave (fn [{::keys [current] :as ctx}]
@@ -184,8 +216,14 @@
                        k))})
 
 (defn only
-  "Returns an interceptor that terminates execution if `k` is not present in
-  `:tags`."
+  "Returns an [[moira.context|interceptor]] that terminates execution if `k` is
+  not present in `:tags`. Does not update `:tags`.
+
+  This can be used to ensure a transition like
+  [[moira.application/pause!|pause!]] is only applied to modules that are
+  currently `:started`"
+
   [k]
+
   {:name ::only
    :enter #(terminate-when-not-tagged-as % k)})
