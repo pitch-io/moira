@@ -6,6 +6,7 @@
 * `down` transitions (e.g., `stop!`, `pause!`) no longer include dependencies
   for execution
 * Inject `:app-log` on all transitions (including `down` and `tx`)
+* Plugins can extend the module with additional keys
 
 ## [v0.8.0-alpha][0.8.0-alpha]
 2023-11-13

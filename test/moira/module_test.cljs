@@ -200,21 +200,22 @@
                       (get ::module/queue)))))))
 
 (deftest with-plugins-test
-  (let [plugin {:foo (fn [f]
-                       (fn [s]
-                         {:foo (f s)}))
+  (let [plugin {:foo (fn [v] [v "baz"])
                 :switch (fn [f]
                           (fn [state ctx k & args]
-                            (p/as-> state s
+                            (as-> state s
                               (conj s "before")
                               (apply f s ctx k args)
-                              (conj s "after"))))}
-        {:keys [state switch] :as module} (module/with-plugins
-                                            {:plugins [plugin]
-                                             :state ["initial"]
-                                             :switch #(conj % "switch")})]
-    (async-let [state* (switch state)]
-      (testing "skip unapplicable"
-        (is (false? (contains? module :foo))))
-      (testing "wrap function"
-        (is (= ["initial" "before" "switch" "after"] state*))))))
+                              (conj s "after"))))
+                :version #(or % "v0.0.1")}
+        {:keys [foo state switch version]} (module/with-plugins
+                                             {:foo "bar"
+                                              :plugins [plugin]
+                                              :state ["initial"]
+                                              :switch #(conj % "switch")})]
+    (testing "wrap value"
+      (is (= ["bar" "baz"] foo)))
+    (testing "add value"
+      (is (= "v0.0.1" version)))
+    (testing "wrap function"
+      (is (= ["initial" "before" "switch" "after"] (switch state))))))

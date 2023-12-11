@@ -8,6 +8,7 @@
 
   (:require [clojure.spec.alpha :as s]
             [moira.context :as context]
+            [moira.transition :as-alias transition]
             [promesa.core :as p]))
 
 (s/def ::deps coll?)
@@ -85,29 +86,47 @@
   (namespace ::_))
 
 (defn execute
-  "Execute interceptors `txs` with current module `k` on transition `ctx`."
+  "Update `ctx` by applying the interceptor chain `txs` to module `k`."
+
   [ctx k txs]
+
   (-> ctx
       (assoc ::current k)
       (context/execute n txs)))
 
 (defn terminate
-  "Terminate execution of interceptor chain for current module."
+  "Terminate [[execute|execution]] for `::current` module. Returns an updated
+  `ctx`."
+
   [ctx]
+
   (context/terminate ctx n))
 
 (defn with-plugins
-  "Extend the module definition by applying `:plugins`."
+
+  "Update module definition by extending it with `:plugins`.
+
+  A plugin definition maps keys to functions that extend the original behavior
+  by invoking the function on the module definition's current value.
+
+      (let [{:keys [foo]} (with-plugins
+                            {:foo #(vector \"foo\" %)
+                             :plugins [{:foo (fn [f]
+                                               #(conj (f %) \"baz\"))}]})]
+        (foo \"bar\")) ; => [\"foo\" \"bar\" \"baz\"]
+  "
+
   [{:keys [plugins] :as module}]
-  (->> plugins
-       (map #(select-keys % (keys module)))
-       (apply merge-with #(%2 %1) module)))
+
+  (let [ks (keys (apply merge module plugins))
+        module* (into {} (map #(vector % (get module %))) ks)]
+    (apply merge-with #(%2 %1) module* plugins)))
 
 (defn- exports [ctx ks]
   (reduce (fn [m k]
             (let [{:keys [export state]
                    :or {export (constantly nil)}}
-                  (with-plugins (get-in ctx [:moira.transition/app k]))]
+                  (with-plugins (get-in ctx [::transition/app k]))]
               (assoc m k (export state))))
           {}
           ks))
@@ -122,14 +141,14 @@
   {:name ::step
    :enter (fn [{::keys [current] :as ctx}]
             (let [{:keys [deps state] :as module}
-                  (get-in ctx [:moira.transition/app current])]
+                  (get-in ctx [::transition/app current])]
               (if-let [update-state (f (with-plugins module))]
                 (p/let [state* (apply update-state
                                       state
                                       (exports ctx deps)
                                       current
                                       args)]
-                  (assoc-in ctx [:moira.transition/app current :state] state*))
+                  (assoc-in ctx [::transition/app current :state] state*))
                 ctx)))})
 
 (defn enter
@@ -138,17 +157,17 @@
   [k]
   {:name ::enter
    :enter (fn [{::keys [current] :as ctx}]
-            (let [{:keys [tags]} (get-in ctx [:moira.transition/app current])]
+            (let [{:keys [tags]} (get-in ctx [::transition/app current])]
               (cond-> ctx
                 (contains? tags k) terminate)))
    :leave (fn [{::keys [current] :as ctx}]
             (update-in ctx
-                       [:moira.transition/app current :tags]
+                       [::transition/app current :tags]
                        (comp set conj)
                        k))})
 
 (defn- terminate-when-not-tagged-as [{::keys [current] :as ctx} k]
-  (let [{:keys [tags]} (get-in ctx [:moira.transition/app current])]
+  (let [{:keys [tags]} (get-in ctx [::transition/app current])]
     (cond-> ctx
       (not (contains? tags k)) terminate)))
 
@@ -160,7 +179,7 @@
    :enter #(terminate-when-not-tagged-as % k)
    :leave (fn [{::keys [current] :as ctx}]
             (update-in ctx
-                       [:moira.transition/app current :tags]
+                       [::transition/app current :tags]
                        disj
                        k))})
 
