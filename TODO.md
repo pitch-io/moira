@@ -16,3 +16,4 @@
 - [ ] Document patterns and best practices
 - [ ] Define protocol and hybrid export for `:app-log` in API namespace
 - [ ] Remove [promesa](https://github.com/funcool/promesa) dependency `v0.9.0`
+- [ ] Plugin for tracing Application Events
