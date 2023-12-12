@@ -24,63 +24,103 @@
   with the `::error` key removed will settle an error. To signal an error,
   return a context with the exception attached to `::error`.
 
-  Moira supports nesting of execution by operating on multiple qualified
+   Moira supports nesting of execution by operating on multiple qualified
   `::queue`, `::stack`, and `::error` keys. To enable this, relevant functions
-  require a namespace prefix `n` as second argument. This feature enables
-  independent execution while providing access to a shared context. Setting up
-  a [[moira.transition|transition]] through interceptors is clearly separated
+  require a prefix `n` as second argument. By convention, `n` should be the
+  name of the corresponding namespace. This feature enables independent
+  execution while providing access to a shared context. Setting up a
+  [[moira.transition|transition]] through interceptors is clearly separated
   from executing `::txs` on each [[moira.module|module]] individually."
 
   (:require [clojure.spec.alpha :as s]
             [promesa.core :as p]))
 
 (s/def ::enter fn?)
-(s/def ::error fn?) ; FIXME: (fn [ctx error] ,,,)
+(s/def ::error fn?)
 (s/def ::leave fn?)
 (s/def ::tx (s/keys :opt-un [::enter ::error ::leave]))
 (s/def ::txs (s/coll-of ::tx))
 
 (defn done?
-  "Returns true, if there are no more pending execution steps."
+  "Returns true if there are no more pending execution steps for `ctx` within
+  the scope of `n`.
+
+  `n` is used to qualify respective `:queue`, `:stack`, and `:error` keys."
+
   [ctx n]
+
   (and (empty? (get ctx (keyword n :queue)))
        (empty? (get ctx (keyword n :stack)))))
 
 (defn error?
-  "Returns true, if execution is in error stage."
+  "Returns true, if scope `n` of `ctx` is in `:error` stage.
+
+  `n` is used to qualify respective `:queue`, `:stack`, and `:error` keys."
+
   [ctx n]
+
   (contains? ctx (keyword n :error)))
 
-(defn queue? [v]
-  (instance? PersistentQueue v))
+(defn queue?
+  "Returns true if `x` is an instance of `PersistentQueue`."
 
-(defn into-queue [coll xs]
+  [x]
+
+  (instance? PersistentQueue x))
+
+(defn into-queue
+  "Returns a `PersistentQueue` from `coll` with all `xs` conjoined."
+
+  [coll xs]
+
   (let [queue (if (queue? coll) coll (into #queue [] coll))]
     (into queue xs)))
 
 (defn enqueue
-  "Add interceptors to the end of the execution queue."
+  "Schedule interceptors `txs` for execution within scope `n`. Returns an
+  updated `ctx`.
+
+  `n` is used to qualify respective `:queue`, `:stack`, and `:error` keys."
+
   [ctx n txs]
+
+  {:pre [(s/valid? ::txs txs)]}
+
   (update ctx (keyword n :queue) into-queue txs))
 
 (defn terminate
-  "Drop execution of any pending interceptors and immediately switch to the
-  leave stage."
+  "Drop execution of all pending interceptors within scope `n` and immediately
+  switch to exit stage (i.e., `:leave` or `:error`). Returns an updated `ctx`.
+
+  `n` is used to qualify respective `:queue`, `:stack`, and `:error` keys."
+
   [ctx n]
+
   (assoc ctx (keyword n :queue) #queue []))
 
 (defn into-stack [coll xs]
   (apply conj coll xs))
 
 (defn stack
-  "Add inteceptors to the top of the execution stack."
+  "Add inteceptors `txs` to the top of the execution stack for scope `n`.
+  Returns an updated `ctx`.
+
+  `n` is used to qualify respective `:queue`, `:stack`, and `:error` keys."
+
   [ctx n txs]
+
+  {:pre [(s/valid? ::txs txs)]}
+
   (update ctx (keyword n :stack) into-stack txs))
 
-(defn ->ex [v data]
+(defn ->ex
+  "Wrap `x` into an instance of `ExceptionInfo` with `data`."
+
+  [x data]
+
   (ex-info
-   (or (ex-message v) (str v))
-   (assoc data ::ex v)))
+   (or (ex-message x) (str x))
+   (assoc data ::ex x)))
 
 (defn- step [ctx n f g data]
   (-> (p/resolved ctx)
@@ -88,11 +128,14 @@
       (p/catch #(assoc ctx (keyword n :error) (->ex % data)))))
 
 (defn enter-1
-  "Execute next enter step.
+  "Execute next `:enter` step for scope `n`. Returns a `Promise` resolving to
+  the updated `ctx`.
 
-  Returns a promise resolving to the updated context. Fails gracefully, if not
-  applicable."
+  Fails gracefully, if not applicable. `n` is used to qualify respective
+  `:queue`, `:stack`, and `:error` keys."
+
   [ctx n]
+
   (let [q (get ctx (keyword n :queue))]
     (if (seq q)
       (let [{:keys [enter name] :or {enter identity} :as tx} (peek q)]
@@ -103,11 +146,14 @@
       (p/resolved ctx))))
 
 (defn leave-1
-  "Execute next leave or error step.
+  "Execute next `:leave` or `:error` step for scope `n`. Returns a `Promise`
+  resolving to the updated `ctx`.
 
-  Returns a promise resolving to the updated context. Fails gracefully, if not
-  applicable."
+  Fails gracefully, if not applicable. `n` is used to qualify respective
+  `:queue`, `:stack`, and `:error` keys."
+
   [ctx n]
+
   (let [s (get ctx (keyword n :stack))]
     (if (seq s)
       (let [{:keys [error leave name]
@@ -119,36 +165,48 @@
       (p/resolved ctx))))
 
 (defn execute-1
-  "Execute next enter, leave, or error step.
+  "Execute next `:enter`, `:leave`, or `:error` step for scope `n`. Returns a
+  `Promise` resolving to the updated `ctx`.
 
-  Returns a promise resolving to the updated context. Fails gracefully, if not
-  applicable."
+  Fails gracefully, if not applicable. `n` is used to qualify respective
+  `:queue`, `:stack`, and `:error` keys."
+
   [ctx n]
+
   (cond
     (seq (get ctx (keyword n :queue))) (enter-1 ctx n)
     (seq (get ctx (keyword n :stack))) (leave-1 ctx n)
     :else (p/resolved ctx)))
 
-(defn emit [ctx n]
-  (if (error? ctx n) (p/rejected (get ctx (keyword n :error))) ctx))
-
 (defn execute-all
-  "Execute all enter, leave, or error steps.
+  "Execute all `:enter`, `:leave`, or `:error` steps for scope `n`. Returns a
+  `Promise` resolving to the updated `ctx`.
 
-  Returns a promise resolving to the updated context. Fails gracefully, if not
-  applicable."
+  Fails gracefully, if not applicable. `n` is used to qualify respective
+  `:queue`, `:stack`, and `:error` keys."
+
   [ctx n]
+
   (p/loop [ctx ctx]
     (if (done? ctx n)
       ctx
       (p/recur (execute-1 ctx n)))))
 
+(defn- emit [ctx n]
+  (if (error? ctx n) (p/rejected (get ctx (keyword n :error))) ctx))
+
 (defn execute
-  "Apply a chain of interceptors `txs` to context `ctx`.
+  "Apply a chain of interceptors `txs` to `ctx` within scope `n`. Returns a
+  `Promise` resolving to the updated context.
 
   `ctx` can be a plain map and will be elevated to be an executable context by
-  enqueueing `txs`. Returns a promise resolving to the updated context."
+  enqueueing `txs`. `n` is used to qualify respective `:queue`, `:stack`, and
+  `:error` keys."
+
   [ctx n txs]
+
+  {:pre [(s/valid? ::txs txs)]}
+
   (p/-> ctx
         (enqueue n txs)
         (execute-all n)

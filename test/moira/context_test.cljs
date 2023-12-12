@@ -57,7 +57,7 @@
            n
            [{:error (partial reset! !ctx)}
             (interceptor "1")
-            (interceptor "2" {:enter #(throw "2> failed!")})
+            (interceptor "2" {:enter #(throw (js/Error. "2> failed!"))})
             (interceptor "3")])
           (p/catch (partial reset! !ex))
           (p/finally
@@ -78,7 +78,7 @@
            n
            [{:error (partial reset! !ctx)}
             (interceptor "1")
-            (interceptor "2" {:leave #(throw "<2 failed!")})
+            (interceptor "2" {:leave #(throw (js/Error. "<2 failed!"))})
             (interceptor "3")])
           (p/catch (partial reset! !ex))
           (p/finally
