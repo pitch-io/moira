@@ -7,7 +7,7 @@
   for execution
 * Inject `:app-log` on all transitions (including `down` and `tx`)
 * Plugins can extend the module with additional keys
-* Deprecate `counter-value` and rename `counter-value` to `counter` for
+* Deprecate `counter-value` and rename `counter-suffix` to `counter` for
   `moira.event/EventId`
 
 ## [v0.8.0-alpha][0.8.0-alpha]
