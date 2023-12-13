@@ -6,16 +6,28 @@
   (:require [clojure.spec.alpha :as s]
             [goog.array :as garray]))
 
-(defprotocol ^:no-doc Dateable
-  (date-prefix [this])
-  (date [this]))
+(defprotocol Dateable
+  "Decode timestamp from [[EventId]]."
 
-(defprotocol ^:no-doc Attributable
-  (app [this]))
+  (date-prefix [this]
+    "Extract part of the [[EventId]] representing the timestamp.")
+  (date [this]
+    "Get `Date` corresponding to [[EventId]]."))
 
-(defprotocol ^:no-doc Countable
-  (counter-suffix [this])
-  (counter-value [this]))
+(defprotocol Attributable
+  "Decode client from [[EventId]]."
+
+  (app [this]
+    "Extract part of the [[EventId]] representing the local application."))
+
+(defprotocol Countable
+  "Decode counter from [[EventId]]."
+
+  (counter [this]
+    "Extract part of the [[EventId]] representing the counter.
+
+    The counter ensures that events with identical [[date-prefix|timestamp]]
+    and [[app|application id]] are always unique and in order."))
 
 (defprotocol ^:no-doc Counter
   (next-count [this]))
@@ -60,11 +72,8 @@
     (.substr id 8 12))
 
   Countable
-  (counter-suffix [_]
-    (.substring id 20))
-  (counter-value [this]
-    (-> (counter-suffix this)
-        (js/parseInt 36))))
+  (counter [_]
+    (.substring id 20)))
 
 (def event-id? (partial instance? EventId))
 (s/def ::date (partial instance? js/Date))

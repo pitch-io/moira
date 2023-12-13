@@ -42,14 +42,14 @@
     (testing "Encodes app-id context"
       (is (= test-app-id (event/app id))))
     (testing "Encodes counter suffix"
-      (is (= "0457" (event/counter-suffix id))))))
+      (is (= "0457" (event/counter id))))))
 
 (deftest inspect-event-id-test
   (let [id (event/next-id (test-generator))]
     (testing "Inspect value string"
       (is (= (str (event/date-prefix id)
                   (event/app id)
-                  (event/counter-suffix id))
+                  (event/counter id))
              (str id))))))
 
 (deftest increase-counter-test
