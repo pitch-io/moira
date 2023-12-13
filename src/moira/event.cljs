@@ -1,4 +1,8 @@
 (ns moira.event
+  "Create Application Events using unique [[EventId|IDs]] with deterministic
+  order based on a
+  [logical clock](https://en.wikipedia.org/wiki/Logical_clock)."
+
   (:require [clojure.spec.alpha :as s]
             [goog.array :as garray]))
 
