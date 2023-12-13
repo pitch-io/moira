@@ -1,5 +1,5 @@
 (ns moira.context
-  "Implementation of the [interceptor design
+  "Implement the [interceptor design
   pattern](https://lambdaisland.com/episodes/interceptors-concepts) based on
   asynchronous `Promise` chains.
 
@@ -42,7 +42,7 @@
 (s/def ::txs (s/coll-of ::tx))
 
 (defn done?
-  "Returns true if there are no more pending execution steps for `ctx` within
+  "Return true if there are no more pending execution steps for `ctx` within
   the scope of `n`.
 
   `n` is used to qualify respective `:queue`, `:stack`, and `:error` keys."
@@ -53,7 +53,7 @@
        (empty? (get ctx (keyword n :stack)))))
 
 (defn error?
-  "Returns true, if scope `n` of `ctx` is in `:error` stage.
+  "Return true if scope `n` of `ctx` is in `:error` stage.
 
   `n` is used to qualify respective `:queue`, `:stack`, and `:error` keys."
 
@@ -62,14 +62,14 @@
   (contains? ctx (keyword n :error)))
 
 (defn queue?
-  "Returns true if `x` is an instance of `PersistentQueue`."
+  "Return true if `x` is an instance of `PersistentQueue`."
 
   [x]
 
   (instance? PersistentQueue x))
 
 (defn into-queue
-  "Returns a `PersistentQueue` from `coll` with all `xs` conjoined."
+  "Create a `PersistentQueue` from `coll` with all `xs` conjoined."
 
   [coll xs]
 
@@ -77,10 +77,10 @@
     (into queue xs)))
 
 (defn enqueue
-  "Schedule interceptors `txs` for execution within scope `n`. Returns an
-  updated `ctx`.
+  "Schedule interceptors `txs` for execution within scope `n`.
 
-  `n` is used to qualify respective `:queue`, `:stack`, and `:error` keys."
+  Returns an updated `ctx`. `n` is used to qualify respective `:queue`,
+  `:stack`, and `:error` keys."
 
   [ctx n txs]
 
@@ -90,9 +90,10 @@
 
 (defn terminate
   "Drop execution of all pending interceptors within scope `n` and immediately
-  switch to exit stage (i.e., `:leave` or `:error`). Returns an updated `ctx`.
+  switch to exit stage (i.e., `:leave` or `:error`).
 
-  `n` is used to qualify respective `:queue`, `:stack`, and `:error` keys."
+  Returns an updated `ctx`. `n` is used to qualify respective `:queue`,
+  `:stack`, and `:error` keys."
 
   [ctx n]
 
@@ -103,9 +104,9 @@
 
 (defn stack
   "Add inteceptors `txs` to the top of the execution stack for scope `n`.
-  Returns an updated `ctx`.
 
-  `n` is used to qualify respective `:queue`, `:stack`, and `:error` keys."
+  Returns an updated `ctx`. `n` is used to qualify respective `:queue`,
+  `:stack`, and `:error` keys."
 
   [ctx n txs]
 
@@ -128,10 +129,10 @@
       (p/catch #(assoc ctx (keyword n :error) (->ex % data)))))
 
 (defn enter-1
-  "Execute next `:enter` step for scope `n`. Returns a `Promise` resolving to
-  the updated `ctx`.
+  "Execute next `:enter` step for scope `n`.
 
-  Fails gracefully, if not applicable. `n` is used to qualify respective
+  Returns a `Promise` resolving to the updated `ctx`. Fails gracefully, if not
+  applicable. `n` is used to qualify respective
   `:queue`, `:stack`, and `:error` keys."
 
   [ctx n]
@@ -146,10 +147,10 @@
       (p/resolved ctx))))
 
 (defn leave-1
-  "Execute next `:leave` or `:error` step for scope `n`. Returns a `Promise`
-  resolving to the updated `ctx`.
+  "Execute next `:leave` or `:error` step for scope `n`.
 
-  Fails gracefully, if not applicable. `n` is used to qualify respective
+  Returns a `Promise` resolving to the updated `ctx`. Fails gracefully, if not
+  applicable. `n` is used to qualify respective
   `:queue`, `:stack`, and `:error` keys."
 
   [ctx n]
@@ -165,11 +166,11 @@
       (p/resolved ctx))))
 
 (defn execute-1
-  "Execute next `:enter`, `:leave`, or `:error` step for scope `n`. Returns a
-  `Promise` resolving to the updated `ctx`.
+  "Execute next `:enter`, `:leave`, or `:error` step for scope `n`.
 
-  Fails gracefully, if not applicable. `n` is used to qualify respective
-  `:queue`, `:stack`, and `:error` keys."
+  Returns a `Promise` resolving to the updated `ctx`. Fails gracefully, if not
+  applicable. `n` is used to qualify respective `:queue`, `:stack`, and
+  `:error` keys."
 
   [ctx n]
 
@@ -179,11 +180,11 @@
     :else (p/resolved ctx)))
 
 (defn execute-all
-  "Execute all `:enter`, `:leave`, or `:error` steps for scope `n`. Returns a
-  `Promise` resolving to the updated `ctx`.
+  "Execute all `:enter`, `:leave`, or `:error` steps for scope `n`.
 
-  Fails gracefully, if not applicable. `n` is used to qualify respective
-  `:queue`, `:stack`, and `:error` keys."
+  Returns a `Promise` resolving to the updated `ctx`. Fails gracefully, if not
+  applicable. `n` is used to qualify respective `:queue`, `:stack`, and
+  `:error` keys."
 
   [ctx n]
 
@@ -196,12 +197,11 @@
   (if (error? ctx n) (p/rejected (get ctx (keyword n :error))) ctx))
 
 (defn execute
-  "Apply a chain of interceptors `txs` to `ctx` within scope `n`. Returns a
-  `Promise` resolving to the updated context.
+  "Apply a chain of interceptors `txs` to `ctx` within scope `n`.
 
-  `ctx` can be a plain map and will be elevated to be an executable context by
-  enqueueing `txs`. `n` is used to qualify respective `:queue`, `:stack`, and
-  `:error` keys."
+  Returns a `Promise` resolving to the updated context. `ctx` can be a plain
+  map and will be elevated to be an executable context by enqueueing `txs`. `n`
+  is used to qualify respective `:queue`, `:stack`, and `:error` keys."
 
   [ctx n txs]
 

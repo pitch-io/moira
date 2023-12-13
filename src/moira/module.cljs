@@ -32,8 +32,10 @@
   (s/map-of any? ::module))
 
 (defn ex-cyclic-deps
-  "Returns an error with specific type and data for when a cyclic dependency
-  was detected."
+  "Create an instance of `ExceptionInfo` specific to cyclic dependency errors.
+
+  `k` is the module name in the `system-map`. `visited` is the set of
+  previously addressed dependencies while walking the dependency graph."
 
   [k visited]
 
@@ -43,11 +45,11 @@
             :cycle visited}))
 
 (defn ex-cyclic-deps?
-  "Test helper for checking on error created by [[ex-cyclic-deps]]."
+  "Return true if `ex` was created by [[ex-cyclic-deps]]."
 
-  [e]
+  [ex]
 
-  (= ::cycle-detected (:type (ex-data e))))
+  (= ::cycle-detected (:type (ex-data ex))))
 
 (defn postwalk-deps
   "Get the chain of dependencies for module `k`, depth-first and post-order.
@@ -68,7 +70,7 @@
     (walk k #{})))
 
 (defn dependency-chain
-  "Returns a lazy sequence of modules `ks` and all their dependencies, without
+  "Make a lazy sequence of modules `ks` and all their dependencies, without
   duplicates and in the order of the dependency graph.
 
   `app` must be a `system-map` including all relevant module definitions.
@@ -80,7 +82,9 @@
   (sequence (comp (mapcat (partial postwalk-deps app)) (distinct)) ks))
 
 (def ^:private n
-  "Corresponding interceptors operate on a qualified `::queue` and `::stack`
+  "Namespace name as string.
+
+  Corresponding interceptors operate on a qualified `::queue` and `::stack`
   scoped to this namespace."
 
   (namespace ::_))
@@ -123,7 +127,7 @@
     (apply merge-with #(%2 %1) module* plugins)))
 
 (defn exports
-  "Returns a map of module `ks` to exports.
+  "Make a map of module `ks` to exports.
 
   Each export is the result of applying the respective module's `:export`
   function on the module's current `:state`. `:export` must be free of
@@ -140,9 +144,11 @@
           ks))
 
 (defn step
-  "Returns an [[moira.context|interceptor]] that updates the `::current`
+  "Make an [[moira.context|interceptor]] that updates the `::current`
   module's state by applying the function returned from calling `f` on the
-  module. Typically,`f` will be a keyword, but it can be any function.
+  module.
+
+  Typically,`f` will be a keyword, but it can be any function.
 
   The update function receives the module's current `:state`, [[exports]] from
   dependencies, the module key defined in the `system-map`, and any additional
@@ -170,9 +176,10 @@
                 ctx)))})
 
 (defn enter
-  "Returns an [[moira.context|interceptor]] that terminates execution if `k` is
-  already present in the `::current` module's `:tags`. Updates `:tags` to
-  contain `k` on leave.
+  "Make an [[moira.context|interceptor]] that terminates execution if `k` is
+  already present in the `::current` module's `:tags`.
+
+  Updates `:tags` to contain `k` on leave.
 
   This can be used to ensure a transition like
   [[moira.application/start!|start!]] is only applied once on modules that are
@@ -197,9 +204,10 @@
       (not (contains? tags k)) terminate)))
 
 (defn exit
-  "Returns an [[moira.context|interceptor]] that terminates execution if `k` is
-  *not* present in the `::current` module's `:tags`. Updates `:tags` to no
-  longer contain `k` on leave.
+  "Make an [[moira.context|interceptor]] that terminates execution if `k` is
+  *not* present in the `::current` module's `:tags`.
+
+  Updates `:tags` to no longer contain `k` on leave.
 
   This can be used to ensure a transition like
   [[moira.application/stop!|stop!]] is only applied for modules that are
@@ -216,8 +224,10 @@
                        k))})
 
 (defn only
-  "Returns an [[moira.context|interceptor]] that terminates execution if `k` is
-  not present in `:tags`. Does not update `:tags`.
+  "Make an [[moira.context|interceptor]] that terminates execution if `k` is
+  not present in `:tags`.
+
+  Does not update `:tags`.
 
   This can be used to ensure a transition like
   [[moira.application/pause!|pause!]] is only applied to modules that are

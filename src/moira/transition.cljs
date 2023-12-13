@@ -35,10 +35,11 @@
   (if (all? ks) (keys app) ks))
 
 (defn enqueue-modules
-  "Returns an [[moira.context|interceptor]] that inserts `ks` into `::modules`
-  to schedule them as targets for a transition. The order of execution is
-  determined by the dependency graph, so each module is guaranteed to be
-  inserted after its dependencies.
+  "Make an [[moira.context|interceptor]] that inserts `ks` into `::modules`
+  to schedule them as targets for a transition.
+
+  The order of execution is determined by the dependency graph, so each module
+  is guaranteed to be inserted after its dependencies.
 
   If the `include-deps?` option is enabled, the queue will include missing
   dependencies. The `reverse?` option inverts execution order."
@@ -88,12 +89,18 @@
                 ctx
                 (p/recur (execute-txs-1 ctx)))))})
 
-(def ^:private n (namespace ::_))
+(def ^:private n
+  "Namespace name as string.
+
+  Corresponding interceptors operate on a qualified `::queue` and `::stack`
+  scoped to this namespace."
+  (namespace ::_))
 
 (defn execute
   "Wrap `app` with a [[moira.context|context]] for execution and apply the
-  interceptor chain `txs` on each module respectively. Returns a `Promise` that
-  resolves to the updated `system-map`."
+  interceptor chain `txs` on each module respectively.
+
+  Returns a `Promise` that resolves to the updated `system-map`."
 
   [app txs]
 
@@ -103,8 +110,9 @@
 
 (defn up
   "Elevate modules defined for `ks` and all their dependencies by applying the
-  interceptor chain `txs` in the context of each module respectively. Returns a
-  new application with updated module states.
+  interceptor chain `txs` in the context of each module respectively.
+
+  Returns a new application with updated module states.
 
   Dependencies are updated first, so each module's transition is guaranteed to
   be applied before any depending modules. `:app-log` is injected, if not
@@ -125,8 +133,9 @@
 
 (defn down
   "Degrade modules defined for `ks` by applying the interceptor chain `txs` in
-  the context of each module respectively. Returns a new application with
-  updated module states.
+  the context of each module respectively.
+
+  Returns a new application with updated module states.
 
   No additional dependencies are added, and order of execution is reversed.
   Consequently, each module's transition is guaranteed to be applied *after*
@@ -147,8 +156,9 @@
 
 (defn tx
   "Update modules defined for `ks` by applying the interceptor chain `txs` in
-  the context of each module respectively. Returns a new application with
-  updated module states.
+  the context of each module respectively.
+
+  Returns a new application with updated module states.
 
   No additional dependencies are added, but order of execution is preserved.
   Consequently, each module's transition is guaranteed to be applied *before*

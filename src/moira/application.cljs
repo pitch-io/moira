@@ -52,9 +52,10 @@
     Returns a `Promise` that resolves to the updated `system-map`."))
 
 (defprotocol Transitionable
-  "Manage the lifecycle of an [[Application]] through chained updates. The
-  [[moira.transition]] is guaranteed to be applied on module dependencies first
-  for [[up!]] and last for [[down!]]."
+  "Manage the lifecycle of an [[Application]] through chained updates.
+
+  The [[moira.transition]] is guaranteed to be applied on module dependencies
+  first for [[up!]] and last for [[down!]]."
 
   (up! [this txs ks]
     "Update `this` by elevating modules defined for `ks` and all their
@@ -114,8 +115,8 @@
     Returns a `Promise` that resolves to the updated `system-map`."))
 
 (def ^:dynamic *timeout*
-  "Maximum duration in milliseconds for a [[moira.transition|transition]] to
-  complete.
+  "Configure maximum duration in milliseconds for a
+  [[moira.transition|transition]] to complete.
 
   Lifecycle events should settle swiftly to minimize the period during which
   the system is in a transitional state. If the update is not fulfilled or
@@ -144,8 +145,10 @@
 (deftype
  ^{:doc
    "Construct `Application` instances using [[create]] to properly wrap
-   `system-map`, instrument modules, and initiate state. Avoid using the
-   `->Application` conctructor directly.
+   `system-map`, instrument modules, and initiate state.
+
+   The `->Application` conctructor should never be used by external code
+   directly.
 
    `Application` implements
    [`IDeref`](https://cljs.github.io/api/cljs.core/IDeref),
@@ -264,9 +267,10 @@
   (->Application (atom system-map) (volatile! (p/resolved system-map))))
 
 (defn start!
-  "Start modules defined for `ks` and their dependencies. If `ks` is not
-  provided, start all modules. Returns a `Promise` that resolves to the updated
-  `system-map` after all module states have settled.
+  "Start modules defined for `ks` and their dependencies.
+
+  If `ks` is not provided, start all modules. Returns a `Promise` that resolves
+  to the updated `system-map` after all module states have settled.
 
   Dependencies are started first, so each module's transition is guaranteed to
   be applied before any depending modules. `:app-log` is injected, if not
@@ -292,9 +296,10 @@
         ks)))
 
 (defn stop!
-  "Stop modules defined for `ks`. If `ks` is not provided, stop all modules.
-  Returns a `Promise` that resolves to the updated `system-map` after all
-  module states have settled.
+  "Stop modules defined for `ks`.
+
+  If `ks` is not provided, stop all modules. Returns a `Promise` that resolves
+  to the updated `system-map` after all module states have settled.
 
   Dependencies are not stopped, and order of execution is reversed.
   Consequently, each module's transition is guaranteed to be applied *after*
@@ -321,9 +326,10 @@
           ks)))
 
 (defn pause!
-  "Pause modules defined for `ks`. If `ks` is not provided, pause all modules.
-  Returns a `Promise` that resolves to the updated `system-map` after all
-  module states have settled.
+  "Pause modules defined for `ks`.
+
+  If `ks` is not provided, pause all modules. Returns a `Promise` that resolves
+  to the updated `system-map` after all module states have settled.
 
   Dependencies are not paused, and order of execution is reversed.
   Consequently, each module's transition is guaranteed to be applied *after*
@@ -360,9 +366,10 @@
           ks)))
 
 (defn resume!
-  "Resume modules defined for `ks` and their dependencies. If `ks` is not
-  provided, resume all modules. Returns a `Promise` that resolves to the
-  updated `system-map` after all module states have settled.
+  "Resume modules defined for `ks` and their dependencies.
+
+  If `ks` is not provided, resume all modules. Returns a `Promise` that
+  resolves to the updated `system-map` after all module states have settled.
 
   Dependencies are resumed first, so each module's transition is guaranteed to
   be applied before any depending modules. This is a lightweight
@@ -390,9 +397,10 @@
 
 (defn init!
   "Merge `config` into `app` and start modules defined for `ks` and their
-  dependencies. If `ks` is not provided, start all modules. Returns a `Promise`
-  that resolves to the updated `system-map` after all module states have
-  settled.
+  dependencies.
+
+  If `ks` is not provided, start all modules. Returns a `Promise` that resolves
+  to the updated `system-map` after all module states have settled.
 
       (defn main [api-token]
         (application/init! app {:module-a {:token api-token}})
@@ -416,10 +424,12 @@
    (start! app ks)))
 
 (defn load!
-  "Extend the `app` by adding `modules` and starting them. Merges existing
-  modules without overwriting any values that are already present. Note that
-  the `app` may already be running.  Returns a `Promise` that resolves to the
-  updated `system-map` after all module states have settled.
+  "Extend the `app` by adding `modules` and starting them.
+
+  Merges existing modules without overwriting any values that are already
+  present. Note that the `app` may already be running.  Returns a `Promise`
+  that resolves to the updated `system-map` after all module states have
+  settled.
 
   See [[start!]] for more details on starting modules.
 
