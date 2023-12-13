@@ -1,5 +1,5 @@
 (ns moira.event
-  "Implement [[Factory]] for producing Application Events with unique
+  "Create [[Factory]] for producing Application Events with unique
   [[EventId|Event IDs]] and guaranteed ordering based on a
   [logical clock](https://en.wikipedia.org/wiki/Logical_clock)."
 

@@ -1,6 +1,5 @@
 (ns moira.log.txs
-  "Interceptors for integrating `:app-log` into the
-  [[moira.transition|transition]] flow."
+  "Integrate `:app-log` into the [[moira.transition|transition]] flow."
 
   (:require [moira.log.event-emitter :as event-emitter]
             [moira.log.module :as log.module]
