@@ -3,7 +3,8 @@
 # Moira
 
 [![Clojars Project](https://img.shields.io/clojars/v/com.pitch/moira.svg)](https://clojars.org/com.pitch/moira)
-[![Test Status](https://github.com/pitch-io/moira/workflows/run-tests/badge.svg)](https://github.com/pitch-io/moira/actions)
+[![Test Status](https://github.com/pitch-io/moira/workflows/run-tests/badge.svg)](https://github.com/pitch-io/moira/actions/workflows/run-tests.yml)
+[![cljdoc](https://cljdoc.org/badge/com.pitch/moira)](https://cljdoc.org/d/com.pitch/moira)
 
 Modular frontend applications in [ClojureScript][cljs].
 

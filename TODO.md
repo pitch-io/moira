@@ -1,13 +1,12 @@
 # TODO
 
 ## Doing
-- [x] Create tasklist & changelog
-- [x] Publish on [clojars](https://clojars.org) `v0.8.0-alpha`
-- [ ] Improve API docs `v0.8.0`
+- [ ] Handle incoming dependencies `v.0.8.0`
 
 ## Upcoming
-- [ ] Set up [cljkondo](https://github.com/clj-kondo/clj-kondo) `v0.8.0`
-- [ ] Set up [cljdoc](https://cljdoc.org) `v0.8.0`
+- [ ] Set up [cljdoc](https://cljdoc.org)
+- [ ] Set up [cljfmt](https://github.com/clj-kondo/clj-kondo)
+- [ ] Set up [clj-kondo](https://github.com/clj-kondo/clj-kondo)
 - [ ] Migrate to [tools.bbuild](https://github.com/babashka/tools.bbuild)
 
 ## Backlog
