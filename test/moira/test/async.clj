@@ -35,10 +35,13 @@
   reported to the test runner."
   [& body]
   `(cljs.test/async done#
-     (-> (try
-           ~@body
-           (catch :default ex#
-             (promesa.core/rejected ex#)))
+     ;; `cljs.test/async` runs its body in an async function, which awaits a
+     ;; `try` expression. The function wrapper keeps the promise as a promise.
+     (-> ((fn []
+            (try
+              ~@body
+              (catch :default ex#
+                (promesa.core/rejected ex#)))))
          moira.test.async/timeout
          (promesa.core/finally done#))))
 
